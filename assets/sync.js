@@ -13,7 +13,12 @@
   const LS_ALERTS = "tarter_yard_alerts_v6";
   const LS_QUEUE = "tarter_yard_queue_v6";
   const LS_NAME = "tarter_yard_name";
-  const POLL_MS = 8000;
+  // Polling backs off when nobody is touching the screen. A phone left open
+  // on the map all shift then costs ~60 requests/hour instead of ~450, which
+  // keeps a whole crew inside Netlify's free function allowance.
+  const POLL_ACTIVE_MS = 15000;
+  const POLL_IDLE_MS = 60000;
+  const IDLE_AFTER_MS = 120000;
   const PUSH_DEBOUNCE_MS = 1200;
 
   const listeners = { state: [], alerts: [], status: [] };
@@ -374,16 +379,39 @@
     }
   }
 
+  let lastTouch = Date.now();
+  const markActive = () => { lastTouch = Date.now(); };
+
+  /** Poll fast while somebody is using the app, slowly once it goes idle. */
+  function scheduleNextPoll() {
+    if (pollTimer) clearTimeout(pollTimer);
+    const idle = Date.now() - lastTouch > IDLE_AFTER_MS;
+    pollTimer = setTimeout(async () => {
+      await pollOnce();
+      scheduleNextPoll();
+    }, idle ? POLL_IDLE_MS : POLL_ACTIVE_MS);
+  }
+
   function startPolling() {
     stopPolling();
-    pollTimer = setInterval(pollOnce, POLL_MS);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) pollOnce(); });
-    global.addEventListener("online", () => { S.online = true; pollOnce(); });
+    markActive();
+    scheduleNextPoll();
+
+    ["pointerdown", "keydown", "wheel"].forEach((ev) =>
+      document.addEventListener(ev, markActive, { passive: true }));
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      // Coming back to the app is the moment fresh data matters most.
+      markActive();
+      pollOnce().then(scheduleNextPoll);
+    });
+    global.addEventListener("online", () => { S.online = true; markActive(); pollOnce(); });
     global.addEventListener("offline", () => { S.online = false; });
     // Do not lose the last edit when the tab closes.
     global.addEventListener("pagehide", () => { flush(); });
   }
-  function stopPolling() { if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+  function stopPolling() { if (pollTimer) clearTimeout(pollTimer); pollTimer = null; }
 
   /* -------------------------------------------------- public API */
 
