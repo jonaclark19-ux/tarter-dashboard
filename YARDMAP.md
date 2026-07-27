@@ -1,391 +1,194 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<!-- Blocks iOS/Android phone-number and address detection so tapping a SKU never opens Maps -->
-<meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
-<meta name="theme-color" content="#161B22" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Tarter Yard Map — Product Locator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="assets/yardmap.css" />
-<!-- SheetJS: reads .xlsx/.csv for bulk product import -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-</head>
-<body class="booting">
+# Tarter Yard Map — guía de instalación y uso
 
-<!-- ======================================================= LOGIN -->
-<div class="login-screen" id="loginScreen">
-  <form class="login-box" id="loginForm" autocomplete="on">
-    <div class="login-brand">
-      <div class="logo">T</div>
-      <div>
-        <h1 data-i18n="login.title">Tarter Yard Map</h1>
-        <div class="sub" data-i18n="login.sub">Sign in to continue</div>
-      </div>
-    </div>
+Mapa dinámico de la yarda con búsqueda de productos, reportes desde el celular,
+escáner de código de barras y sincronización en vivo entre dispositivos.
 
-    <label class="fld">
-      <span data-i18n="login.name">Your name</span>
-      <input type="text" id="loginName" name="name" autocomplete="name" data-i18n-ph="login.namePh" required />
-    </label>
+- **App:** `index.html` → se publica en `https://TU-SITIO.netlify.app/`
+- **Nota:** el dashboard de producción anterior se reemplaza; queda en el historial de git (commit `e1cb558`) por si lo necesitas.
 
-    <label class="fld">
-      <span data-i18n="login.password">Access code</span>
-      <input type="password" id="loginCode" name="password" autocomplete="current-password" data-i18n-ph="login.passwordPh" required />
-    </label>
+---
 
-    <div class="login-err" id="loginErr" hidden></div>
+## 1. Publicar en Netlify
 
-    <button type="submit" class="login-submit" id="loginSubmit" data-i18n="login.submit">Sign in</button>
+1. En Netlify: **Add new site → Import an existing project → GitHub →
+   `jonaclark19-ux/tarter-dashboard`**.
+2. Rama a desplegar: la que tenga estos cambios (o `main` después de mezclarla).
+3. Netlify lee `netlify.toml`, así que **no cambies** nada en la pantalla de build:
+   - Publish directory: `.`
+   - Functions directory: `netlify/functions`
+   - Build command: vacío
+4. Deploy.
 
-    <p class="login-hint" data-i18n="login.roleHint"></p>
+## 2. Configurar las cuentas (obligatorio)
 
-    <div class="login-local" id="loginLocal" hidden>
-      <p data-i18n="login.localMode"></p>
-      <button type="button" class="login-ghost" id="loginLocalBtn" data-i18n="login.continueLocal">Continue offline</button>
-    </div>
+**Site configuration → Environment variables → Add a variable.** Crea estas tres:
 
-    <div class="login-lang">
-      <button type="button" class="langpill" data-lang="en">EN</button>
-      <button type="button" class="langpill" data-lang="es">ES</button>
-    </div>
-  </form>
-</div>
+| Variable | Qué es | Ejemplo |
+|---|---|---|
+| `EDITOR_CODE` | Código que da acceso **completo** de edición | `TarterEdit2026!` |
+| `VIEWER_CODE` | Código que solo permite **crear reportes** | `Yarda2026` |
+| `SESSION_SECRET` | Texto largo aleatorio para firmar las sesiones | genera uno con el comando de abajo |
 
-<!-- ======================================================= APP -->
-<div class="app" id="app" hidden>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">T</div>
-      <div class="brandtext">
-        <h1 data-i18n="app.title">Yard Product Locator</h1>
-        <div class="sub" data-i18n="app.sub">Tarter West</div>
-      </div>
-    </div>
+Para generar el secreto:
 
-    <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="q" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="search.placeholder" />
-      <button type="button" class="clr" id="clr" data-i18n-title="search.clear">×</button>
-      <div class="results" id="results"></div>
-    </div>
+```bash
+openssl rand -base64 48
+```
 
-    <div class="tools">
-      <div class="langswitch" role="group" data-i18n-aria="tool.language">
-        <button class="langpill" data-lang="en">EN</button>
-        <button class="langpill" data-lang="es">ES</button>
-      </div>
+Después de guardarlas, haz **Deploys → Trigger deploy → Clear cache and deploy site**
+(las variables solo entran en vigor con un deploy nuevo).
 
-      <button class="btn ghost iconbtn" id="alertBtn" data-i18n-title="tool.alertsTitle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="badge" id="alertBadge">0</span>
-      </button>
+> No hay cuentas de usuario individuales: hay **dos códigos**. Cada persona escribe
+> su nombre (para saber quién reportó qué) y el código que le corresponde. La sesión
+> queda guardada 30 días en ese teléfono.
 
-      <button class="btn ghost iconbtn" id="scanBtn" data-i18n-title="tool.scanTitle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10.5 8v8M14 8v8M17 8v8"/></svg>
-      </button>
+### Qué puede hacer cada rol
 
-      <button class="btn ghost iconbtn" id="reportBtn" data-i18n-title="tool.reportTitle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.3-7-11a7 7 0 1 1 14 0c0 5.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-      </button>
+| Acción | Viewer | Editor |
+|---|:--:|:--:|
+| Buscar productos, ver el mapa | ✅ | ✅ |
+| Escanear códigos de barras | ✅ | ✅ |
+| Crear reportes (vacío, dañado, queda poco, encontrado fuera de lugar, código desconocido) | ✅ | ✅ |
+| Marcar reportes como resueltos | ❌ | ✅ |
+| Mover/agregar/borrar productos, editar el mapa, grupos, zonas MTO, importar/exportar | ❌ | ✅ |
 
-      <button class="btn ghost iconbtn" id="menuBtn" data-i18n-title="tool.menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
-    </div>
-  </header>
+## 3. Almacenamiento y sincronización
 
-  <main>
-    <div class="stage" id="stage">
-      <div id="canvas"><svg id="bg"></svg></div>
-      <div id="band"></div>
-      <div class="droppin" id="dropPin" hidden>📍</div>
-    </div>
+- Los datos viven en **Netlify Blobs** (incluido en el plan gratuito, sin base de datos externa):
+  - `state.json` → el mapa completo (productos, fondo, grupos, zonas MTO)
+  - `alerts.json` → los reportes
+- **Ya no necesitas subir un HTML o un JSON cada vez que editas.** Un editor mueve un
+  producto y a los ~8 segundos todos los demás dispositivos ven el cambio.
+- Las alertas creadas desde cualquier celular aparecen en todos los demás igual de rápido.
+- Si dos editores guardan al mismo tiempo, el segundo recibe la versión del primero y el
+  aviso *"Otra persona editó el mapa"* — nadie pisa el trabajo del otro en silencio.
+- **Primer arranque:** el servidor empieza vacío. El primer editor que entre sube
+  automáticamente `assets/default-map.json` (tu layout actual) como punto de partida.
 
-    <div class="compass">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8l3 8-3-2-3 2 3-8Z" fill="currentColor"/></svg>
-      <span data-i18n="app.north">NORTH</span>
-    </div>
+### Respaldos
 
-    <div class="editbadge" id="editBadge"><span class="dot"></span><span data-i18n="hint.editBadge"></span></div>
-    <div class="hint" id="viewHint" data-i18n-html="hint.view"></div>
+`Menú → Exportar` descarga un JSON completo. Guárdalo antes de cambios grandes;
+`Menú → Importar` lo restaura.
 
-    <div class="pickbar" id="pickBar" hidden>
-      <span data-i18n="found.pinHint">Tap the map where you found it.</span>
-      <button class="pb-ok" id="pickConfirm" data-i18n="tool.confirm">Confirm</button>
-      <button class="pb-x" id="pickCancel" data-i18n="tool.cancel">Cancel</button>
-    </div>
+---
 
-    <div class="legend" id="legend">
-      <h4><span data-i18n="legend.title">Product groups</span><button id="addGroupBtn" data-i18n-title="legend.newTitle" data-i18n="legend.new">+ New</button></h4>
-      <div id="legendBody"></div>
-    </div>
+## 4. Cómo funciona el reporte (lógica nueva)
 
-    <div class="bgbar" id="bgbar">
-      <button data-tool="select" class="on" data-i18n="bg.select">Select</button>
-      <span class="sep"></span>
-      <span class="grp">
-        <button class="sh" data-tool="rect" data-i18n-title="bg.rect">▭</button>
-        <button class="sh" data-tool="ellipse" data-i18n-title="bg.ellipse">⬭</button>
-        <button class="sh" data-tool="diamond" data-i18n-title="bg.diamond">◆</button>
-        <button class="sh" data-tool="triangle" data-i18n-title="bg.triangle">▲</button>
-        <button class="sh" data-tool="line" data-i18n-title="bg.line">╱</button>
-        <button class="sh" data-tool="label" data-i18n-title="bg.label">T</button>
-        <button class="sh" data-tool="door" data-i18n-title="bg.door">▮</button>
-      </span>
-      <span class="sep"></span>
-      <button id="bgPropBtn" data-i18n="bg.props">⚙ Properties</button>
-      <button id="bgDelBtn" data-i18n="bg.delete">🗑 Delete</button>
-      <button id="bgResetBtn" data-i18n="bg.reset">↺ Reset bg</button>
-      <span class="hintx" data-i18n="hint.bgbar"></span>
-    </div>
+La opción vieja de *"mal ubicado"* se eliminó: no tenía sentido, porque si estabas
+tocando la ficha del producto ya estabas diciendo que estaba en su lugar. Ahora hay
+dos caminos distintos:
 
-    <div class="insp" id="insp">
-      <div class="sheetgrip"></div>
-      <div class="ihead"><span id="iTitle">Shape</span><span class="kindtag" id="iKind">—</span><button class="x" id="iClose">✕</button></div>
-      <div class="ibody" id="iBody">
-        <div id="iEmpty" class="none" data-i18n-html="insp.empty"></div>
-        <div id="iForm" style="display:none">
-          <div class="irow" id="rowShape"><span class="lb" data-i18n="insp.shape">Shape</span>
-            <div class="chips" id="shapeChips">
-              <button data-shape="rect" data-i18n-title="bg.rect">▭</button>
-              <button data-shape="ellipse" data-i18n-title="bg.ellipse">⬭</button>
-              <button data-shape="diamond" data-i18n-title="bg.diamond">◆</button>
-              <button data-shape="triangle" data-i18n-title="bg.triangle">▲</button>
-            </div>
-          </div>
-          <div class="irow" id="rowFill"><span class="lb" data-i18n="insp.fill">Fill</span>
-            <input type="color" id="iFill" value="#2b3542" />
-            <input type="range" id="iOp" min="0" max="100" value="100" />
-            <span class="val" id="iOpV">100%</span>
-          </div>
-          <div class="irow" id="rowStroke"><span class="lb" data-i18n="insp.border">Border</span>
-            <input type="color" id="iStroke" value="#39434f" />
-            <input type="range" id="iSw" min="0" max="16" step="1" value="2" />
-            <span class="val" id="iSwV">2</span>
-          </div>
-          <div class="irow" id="rowDash"><span class="lb" data-i18n="insp.style">Style</span>
-            <div class="chips" id="dashChips">
-              <button data-dash="solid">━━</button>
-              <button data-dash="dashed">╌╌</button>
-              <button data-dash="dotted">┈┈</button>
-            </div>
-          </div>
-          <div class="irow" id="rowRx"><span class="lb" data-i18n="insp.corner">Corner</span>
-            <input type="range" id="iRx" min="0" max="80" value="6" />
-            <span class="val" id="iRxV">6</span>
-          </div>
-          <div class="irow" id="rowRot"><span class="lb" data-i18n="insp.rotate">Rotate</span>
-            <input type="range" id="iRot" min="0" max="359" value="0" />
-            <input type="number" id="iRotN" min="0" max="359" value="0" style="max-width:56px" />
-            <button id="iRot90">+90</button>
-          </div>
-          <div class="irow" id="rowSize"><span class="lb" data-i18n="insp.size">Size</span>
-            <input type="number" id="iW" /><input type="number" id="iH" />
-          </div>
-          <div class="irow" id="rowLabel"><span class="lb" data-i18n="insp.text">Text</span>
-            <input type="text" id="iLabel" data-i18n-ph="insp.labelPh" spellcheck="false" />
-          </div>
-          <div class="irow" id="rowTsize"><span class="lb" data-i18n="insp.textSize">Text sz</span>
-            <input type="range" id="iTs" min="8" max="60" value="20" /><span class="val" id="iTsV">20</span>
-          </div>
-          <div class="acts">
-            <button id="iDup" data-i18n="insp.duplicate">⧉ Duplicate</button>
-            <button id="iFront" data-i18n="insp.toFront">↑ Front</button>
-            <button id="iBack" data-i18n="insp.toBack">↓ Back</button>
-            <button id="iDel" class="danger" data-i18n="insp.delete">🗑 Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
+### A) Toco una ficha del mapa → "algo pasa con este producto aquí"
 
-    <div class="seltool" id="seltool">
-      <span class="cnt"><b id="selCount">0</b> <span data-i18n="sel.count">sel</span></span>
-      <span class="sep"></span>
-      <button data-al="left" data-i18n-title="sel.alignLeft">⇤</button>
-      <button data-al="cx" data-i18n-title="sel.alignCx">↔</button>
-      <button data-al="right" data-i18n-title="sel.alignRight">⇥</button>
-      <button data-al="top" data-i18n-title="sel.alignTop">⤒</button>
-      <button data-al="cy" data-i18n-title="sel.alignCy">↕</button>
-      <button data-al="bottom" data-i18n-title="sel.alignBottom">⤓</button>
-      <span class="sep"></span>
-      <button data-al="rowh" data-i18n-title="sel.rowh">⇉</button>
-      <button data-al="colv" data-i18n-title="sel.colv">⇊</button>
-      <button id="selSame" data-i18n-title="sel.same">⬛</button>
-      <span class="sep"></span>
-      <input type="color" id="selColor" value="#37C871" data-i18n-title="sel.color" />
-      <span class="sep"></span>
-      <button id="selRename" data-i18n-title="sel.rename">✎</button>
-      <button id="selReport" data-i18n-title="sel.report">📢</button>
-    </div>
+| Opción | Cuándo usarla |
+|---|---|
+| **Espacio vacío** | El producto debería estar aquí y no hay nada |
+| **Producto dañado / incompleto** | Sí está, pero no se puede vender |
+| **Queda poco** | Todavía hay, pero muy poco |
+| **Encontré otro producto aquí** | Hay algo en ese lugar que no corresponde → salta al flujo B con el lugar ya marcado |
 
-    <div class="zoomctl">
-      <button id="zin">+</button>
-      <button id="zout">−</button>
-      <button class="fit" id="fit">FIT</button>
-    </div>
-  </main>
-</div>
+### B) Encontré un producto suelto → "aquí encontré esto"
 
-<!-- ======================================================= DRAWER -->
-<div class="drawer-scrim" id="drawerScrim"></div>
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <div class="dr-head">
-    <div>
-      <div class="dr-name" id="drName">—</div>
-      <div class="dr-role" id="drRole">—</div>
-    </div>
-    <button class="dr-x" id="drawerClose">✕</button>
-  </div>
+Tres formas de entrar:
 
-  <div class="dr-sync" id="drSync"></div>
+- **Mantén presionado** cualquier punto del mapa (≈½ segundo)
+- Botón **📍 Reportar** en la barra superior
+- Botón **📷 Escanear** en la barra superior
 
-  <div class="dr-sec">
-    <div class="dr-label" data-i18n="tool.language">Language</div>
-    <div class="langswitch wide">
-      <button class="langpill" data-lang="en">English</button>
-      <button class="langpill" data-lang="es">Español</button>
-    </div>
-  </div>
+Después:
 
-  <div class="dr-sec">
-    <button class="dr-item" id="legendBtn"><span class="di">▦</span><span data-i18n="tool.legend">Legend</span></button>
-    <button class="dr-item" id="drReport"><span class="di">📢</span><span data-i18n="tool.report">Report</span></button>
-    <button class="dr-item" id="drScan"><span class="di">📷</span><span data-i18n="tool.scan">Scan</span></button>
-  </div>
+1. **Escanea el código de barras** con la cámara, o escribe el SKU a mano
+   (el campo autocompleta con todos los SKU del sistema).
+2. La app te dice al instante:
+   - ✅ **Lo reconoce** → te muestra su lugar asignado y un botón *Ver en el mapa*.
+   - ⚠️ **No lo reconoce** → *"Este código no está en el sistema"*. Un **viewer** lo
+     reporta como **código desconocido** para que un editor lo dé de alta; un **editor**
+     ve además el botón **"Crear este producto aquí"**, que crea la ficha en ese punto.
+3. **Marca el lugar** en el mapa (📍 Marcar el lugar en el mapa → tocas el punto → Confirmar).
+4. Nota opcional y **Enviar reporte**.
 
-  <div class="dr-sec editor-only">
-    <div class="dr-label" data-i18n="role.editor">Editor</div>
-    <button class="dr-item" id="editBtn"><span class="di">✎</span><span data-i18n="tool.edit">Edit Products</span></button>
-    <button class="dr-item" id="addBtn"><span class="di">＋</span><span data-i18n="tool.add">Add</span></button>
-    <button class="dr-item" id="bgBtn"><span class="di">▧</span><span data-i18n="tool.editMap">Edit Map</span></button>
-    <button class="dr-item" id="snapBtn"><span class="di">⋕</span><span data-i18n="tool.snap">Snap 12px</span></button>
-    <button class="dr-item" id="mtoBtn"><span class="di">★</span><span data-i18n="tool.mto">MTO Zones</span></button>
-  </div>
+El reporte queda como un **pin amarillo en el mapa exactamente donde lo encontraste**
+(azul si el código es desconocido), y en el panel 🔔 con quién lo reportó y cuándo. Si
+marcas el mismo lugar que su spot asignado, la app te avisa que no hay nada que reportar.
 
-  <div class="dr-sec editor-only">
-    <button class="dr-item" id="xlsBtn"><span class="di">▤</span><span data-i18n="tool.excel">Import Excel</span></button>
-    <button class="dr-item" id="importBtn"><span class="di">↥</span><span data-i18n="tool.import">Import</span></button>
-    <button class="dr-item" id="exportBtn"><span class="di">↧</span><span data-i18n="tool.export">Export</span></button>
-    <button class="dr-item danger" id="resetBtn"><span class="di">↺</span><span data-i18n="tool.reset">Reset</span></button>
-  </div>
+### Escáner de códigos de barras
 
-  <div class="dr-sec">
-    <button class="dr-item danger" id="signOutBtn"><span class="di">⏻</span><span data-i18n="session.signOut">Sign out</span></button>
-  </div>
+- Usa la API nativa `BarcodeDetector` en Chrome/Android; en iPhone y Firefox carga
+  **ZXing** automáticamente. Formatos: EAN-13/8, UPC-A/E, Code 128/39/93, ITF, Codabar, QR.
+- Exige leer el mismo código **dos veces seguidas** antes de aceptarlo, para que un
+  reflejo o un enfoque malo no genere un reporte equivocado.
+- Si el código trae dígitos extra de empaque (ceros a la izquierda, dígito verificador,
+  prefijo de país), la app prueba esas variantes antes de declararlo desconocido.
+- **La cámara solo funciona por HTTPS** — o sea, en el sitio de Netlify. Si abres el
+  archivo con doble clic desde tu computadora, el escáner no arranca (te lo dice) y
+  puedes escribir el SKU a mano.
 
-  <input type="file" id="fileIn" accept="application/json" hidden />
-  <input type="file" id="xlsFile" accept=".xlsx,.xls,.csv" hidden />
-</aside>
+---
 
-<div class="ghostwrap" id="ghostwrap"></div>
-<div class="toast" id="toast"></div>
+## 5. Idiomas
 
-<!-- ======================================================= ALERTS -->
-<div class="alerts-panel" id="alertsPanel">
-  <div class="alerts-head">
-    <span data-i18n="alerts.title">Active reports</span>
-    <div class="afilter">
-      <button data-f="open" class="on" data-i18n="alerts.filterOpen">Open</button>
-      <button data-f="done" data-i18n="alerts.filterDone">Resolved</button>
-      <button data-f="all" data-i18n="alerts.filterAll">All</button>
-    </div>
-  </div>
-  <div class="alerts-body" id="alertsBody"></div>
-</div>
+Español e inglés completos. Al abrir por primera vez detecta el idioma del teléfono; a
+partir de ahí recuerda el que elijas. Se cambia en:
 
-<!-- ======================================================= MTO -->
-<div class="report-modal" id="mtoModal">
-  <div class="report-box" style="max-width:560px">
-    <div class="report-head"><span data-i18n="mto.title">Flexible zones</span> <span style="color:var(--amber)" data-i18n="mto.titleAccent">MTO</span></div>
-    <div class="report-body" id="mtoBody" style="max-height:64vh;overflow-y:auto"></div>
-    <div class="report-foot" style="display:flex;justify-content:space-between;align-items:center">
-      <button id="mtoNewBtn" style="color:var(--amber);font-weight:700" data-i18n="mto.new">+ New MTO zone</button>
-      <button id="mtoCloseBtn" data-i18n="tool.close">Close</button>
-    </div>
-  </div>
-</div>
-<input type="file" id="mtoXls" accept=".xlsx,.xls,.csv" hidden />
+- **Celular:** ☰ Menú → Idioma
+- **Computadora:** las pastillas `EN / ES` en la barra superior (o el menú)
+- **Pantalla de login:** las pastillas de abajo
 
-<!-- ======================================================= REPORT (tile) -->
-<div class="report-modal" id="reportModal">
-  <div class="report-box">
-    <div class="report-head" id="reportHead">Report</div>
-    <div class="report-body">
-      <div class="report-q" data-i18n="report.chooseWhat">What do you want to report?</div>
-      <button class="report-btn" data-reason="empty">
-        <span class="ico">🕳️</span>
-        <span class="rtxt"><b data-i18n="report.empty"></b><i data-i18n="report.emptyDesc"></i></span>
-      </button>
-      <button class="report-btn" data-reason="damaged">
-        <span class="ico">🛑</span>
-        <span class="rtxt"><b data-i18n="report.damaged"></b><i data-i18n="report.damagedDesc"></i></span>
-      </button>
-      <button class="report-btn" data-reason="low">
-        <span class="ico">📉</span>
-        <span class="rtxt"><b data-i18n="report.lowStock"></b><i data-i18n="report.lowStockDesc"></i></span>
-      </button>
-      <button class="report-btn" data-reason="found-here">
-        <span class="ico">📦</span>
-        <span class="rtxt"><b data-i18n="report.foundHere"></b><i data-i18n="report.foundHereDesc"></i></span>
-      </button>
-      <label class="fld small">
-        <span data-i18n="found.note">Note (optional)</span>
-        <input type="text" id="reportNote" data-i18n-ph="found.notePh" />
-      </label>
-    </div>
-    <div class="report-foot">
-      <button id="closeReportBtn" data-i18n="tool.cancel">Cancel</button>
-    </div>
-  </div>
-</div>
+---
 
-<!-- ======================================================= FOUND HERE -->
-<div class="report-modal" id="foundModal">
-  <div class="report-box" style="max-width:420px">
-    <div class="report-head" data-i18n="found.title">I found a product here</div>
-    <div class="report-body">
+## 6. Modo local (sin servidor)
 
-      <div class="step-label" data-i18n="found.step1">1 · Which product is it?</div>
-      <button class="report-btn accent" id="foundScanBtn">
-        <span class="ico">📷</span><span class="rtxt"><b data-i18n="found.scanBtn"></b></span>
-      </button>
+Si abres `index.html` sin Netlify (doble clic, o un servidor sin funciones), la app
+detecta que no hay API y ofrece **"Continuar sin conexión"**: funciona todo con permisos
+de editor, pero guardando solo en ese dispositivo (`localStorage`). Útil para probar.
 
-      <label class="fld small">
-        <span data-i18n="found.manualLabel">Or type the SKU</span>
-        <input type="text" id="foundSku" list="skuList" autocapitalize="characters" autocomplete="off"
-               spellcheck="false" data-i18n-ph="found.manualPh" />
-      </label>
-      <datalist id="skuList"></datalist>
+Si estás en Netlify y ves esta pantalla, casi siempre significa que falta configurar
+`SESSION_SECRET` o que no se hizo un deploy después de agregar las variables.
 
-      <div class="lookup" id="foundLookup" hidden></div>
+---
 
-      <div class="step-label" data-i18n="found.step2">2 · Confirm the spot</div>
-      <button class="report-btn" id="foundPickBtn">
-        <span class="ico">📍</span><span class="rtxt"><b data-i18n="found.pickOnMap"></b><i id="foundPinTxt"></i></span>
-      </button>
+## 7. Estructura de archivos
 
-      <label class="fld small">
-        <span data-i18n="found.note">Note (optional)</span>
-        <input type="text" id="foundNote" data-i18n-ph="found.notePh" />
-      </label>
-    </div>
-    <div class="report-foot spread">
-      <button id="foundCancel" data-i18n="tool.cancel">Cancel</button>
-      <button id="foundSubmit" class="primary" data-i18n="found.submit">Send report</button>
-    </div>
-  </div>
-</div>
+```
+index.html                   marcado de la app
+assets/yardmap.css           estilos (incluye el diseño responsive para celular)
+assets/i18n.js               diccionario EN/ES y el motor de traducción
+assets/sync.js               login, guardado, polling y cola de reportes offline
+assets/scan.js               escáner de código de barras (BarcodeDetector + ZXing)
+assets/app.js                motor del mapa, alertas, flujo de reportes
+assets/default-map.json      layout de la yarda que se usa como semilla
+netlify/functions/api.mjs    API: /api/login, /api/me, /api/state, /api/alerts, /api/sync
+netlify.toml                 configuración de publicación y cabeceras
+package.json                 dependencia @netlify/blobs para la función
+```
 
-<script src="assets/i18n.js"></script>
-<script src="assets/sync.js"></script>
-<script src="assets/scan.js"></script>
-<script src="assets/app.js"></script>
-</body>
-</html>
+## 8. Endpoints de la API
+
+| Método | Ruta | Rol | Qué hace |
+|---|---|---|---|
+| POST | `/api/login` | — | Valida el código y crea la cookie de sesión |
+| POST | `/api/logout` | — | Cierra la sesión |
+| GET | `/api/me` | cualquiera | Devuelve rol y nombre |
+| GET | `/api/state` | cualquiera | Descarga el mapa |
+| PUT | `/api/state` | editor | Guarda el mapa (409 si alguien guardó antes) |
+| GET | `/api/alerts` | cualquiera | Lista los reportes |
+| POST | `/api/alerts` | cualquiera | Crea un reporte |
+| PATCH | `/api/alerts` | editor | Resuelve o elimina un reporte |
+| GET | `/api/sync?srev=&arev=` | cualquiera | Devuelve solo lo que cambió (lo usa el polling) |
+
+La cookie de sesión es `HttpOnly`, `Secure`, `SameSite=Lax` y va firmada con HMAC-SHA256.
+El servidor ignora los campos `by`, `role` y `status` que mande el cliente en un reporte:
+los rellena él con los datos de la sesión.
+
+---
+
+## 9. Problemas comunes
+
+| Síntoma | Causa / solución |
+|---|---|
+| Sale la pantalla de "modo local" en Netlify | Falta `SESSION_SECRET` o no se redesplegó tras crear las variables |
+| "Ese código de acceso no es válido" | `EDITOR_CODE` / `VIEWER_CODE` mal escritos, o falta redeploy |
+| El escáner no abre la cámara | Tiene que ser HTTPS y hay que dar permiso de cámara al navegador |
+| Los cambios no llegan a otro teléfono | Ese usuario entró con código de viewer, o el otro dispositivo está sin internet (se sincroniza solo al volver) |
+| El mapa aparece vacío la primera vez | Entra una vez con el código de **editor**: el layout inicial se sube automáticamente |
+| Los reportes se quedan "por enviar" | Sin señal en la yarda: se guardan en el teléfono y se mandan solos al recuperar internet |
