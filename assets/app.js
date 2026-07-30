@@ -1082,6 +1082,106 @@ $("#xlsFile").onchange=e=>{
   rd.readAsArrayBuffer(f); e.target.value="";
 };
 
+/* ===== Fotos en lote: plantilla de Excel + carga masiva por SKU ===== */
+
+/** One row per distinct SKU. `onlyMissing` skips products that already have a photo. */
+function photoRows(onlyMissing, gid){
+  const seen=new Set(), rows=[];
+  data.tiles.forEach(t=>{
+    if(gid && t.g!==gid) return;
+    const sku=String(t.sku||"").trim(); if(!sku) return;
+    const k=normCode(sku); if(!k || seen.has(k)) return; seen.add(k);
+    if(onlyMissing && t.img) return;
+    rows.push([sku, groupName(t.g)||t.g||"", imageSearchUrl(sku), t.img||""]);
+  });
+  return rows.sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}));
+}
+
+/** Ask which group to export; blank means the whole map. Matches by name or id. */
+function askPhotoGroup(){
+  const names=(data.groups||[]).map(g=>g.name).filter(Boolean).join(", ");
+  const v=prompt(t("photos.groupPrompt",{groups:names}), "");
+  if(v==null) return undefined;                       // cancelled
+  const q=v.trim(); if(!q) return null;               // all groups
+  const g=(data.groups||[]).find(x=>
+    x.id.toLowerCase()===q.toLowerCase() ||
+    (x.name||"").toLowerCase().includes(q.toLowerCase()));
+  if(!g){ toast(t("photos.groupUnknown",{q})); return undefined; }
+  return g.id;
+}
+
+function downloadPhotoTemplate(){
+  const gid=askPhotoGroup(); if(gid===undefined) return;
+  const rows=photoRows(true, gid);
+  if(!rows.length){ toast(t("photos.allDone")); return; }
+  const aoa=[[t("photos.colSku"), t("photos.colGroup"), t("photos.colSearch"), t("photos.colImage")], ...rows];
+  if(typeof XLSX!=="undefined"){
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    // Make the search column a real clickable link, so filling this in is one tap per row.
+    rows.forEach((r,i)=>{ const c=XLSX.utils.encode_cell({c:2,r:i+1}); if(ws[c]) ws[c].l={Target:r[2]}; });
+    ws["!cols"]=[{wch:18},{wch:26},{wch:46},{wch:60}];
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Fotos");
+    XLSX.writeFile(wb,"tarter-fotos.xlsx");
+  } else {
+    const csv=aoa.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a");
+    a.href=url; a.download="tarter-fotos.csv"; a.click(); URL.revokeObjectURL(url);
+  }
+  toast(t("photos.templateReady",{n:rows.length})); closeDrawer();
+}
+
+/** Apply SKU→image-URL pairs to every tile carrying that SKU. */
+function applyPhotoRows(pairs){
+  const byKey=new Map();
+  pairs.forEach(p=>{ const k=normCode(p.sku); if(k && p.img) byKey.set(k,p.img); });
+  if(!byKey.size){ toast(t("photos.noRows")); return; }
+  let set=0; const matched=new Set();
+  data.tiles.forEach(tile=>{
+    const k=normCode(tile.sku); const img=byKey.get(k);
+    if(!img) return;
+    matched.add(k);
+    if(tile.img!==img){ tile.img=img; set++; }
+  });
+  const missing=[...byKey.keys()].filter(k=>!matched.has(k));
+  if(set) { save(); renderTiles(); }
+  toast(t("photos.imported",{n:set}) + (missing.length? t("photos.importedMissing",{n:missing.length}) : ""));
+  if(missing.length) console.warn("SKUs not on the map:", missing.join(", "));
+  closeDrawer();
+}
+
+$("#photoTplBtn").onclick=()=>{ if(!canEdit()){ toast(t("session.noPermission")); return; } downloadPhotoTemplate(); };
+$("#photoXlsBtn").onclick=()=>{
+  if(!canEdit()){ toast(t("session.noPermission")); return; }
+  if(typeof XLSX==="undefined"){ toast(t("io.xlsMissing")); return; }
+  $("#photoXls").click();
+};
+$("#photoXls").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(rd.result),{type:"array"});
+      const sh=wb.SheetNames.find(n=>/foto|photo|imag/i.test(n))||wb.SheetNames[0];
+      const arr=XLSX.utils.sheet_to_json(wb.Sheets[sh],{defval:"",raw:false});
+      // Headers are matched loosely so a hand-made sheet works too — but the
+      // "find the photo" search column also contains the word "photo", so it is
+      // explicitly excluded from the image column.
+      const SEARCH_COL=/buscar|busca|find|search|clic|click|google/i;
+      const pick=(o,re,skip)=>{
+        for(const k in o){ const kk=k.trim(); if(skip && skip.test(kk)) continue; if(re.test(kk)) return o[k]; }
+        return "";
+      };
+      const pairs=arr.map(o=>({
+        sku: String(pick(o,/producto|product|sku|numero|número|item|código|codigo/i, SEARCH_COL)).trim(),
+        img: String(pick(o,/imagen|image|foto|photo|url|link/i, SEARCH_COL)).trim(),
+      })).filter(p=>p.sku && p.img && !p.sku.startsWith("("));
+      if(!pairs.length){ toast(t("photos.noRows")); return; }
+      applyPhotoRows(pairs);
+    }catch(err){ console.error(err); toast(t("io.xlsUnreadable")); }
+  };
+  rd.readAsArrayBuffer(f); e.target.value="";
+};
+
 /* ===== Zonas flexibles (MTO / Especiales): lista de SKUs sin ficha ===== */
 let mtoImportTarget=null;
 function skuLinesToArray(text){
@@ -1514,9 +1614,15 @@ function openImageViewer(i){
   $("#imageModal").classList.add("show");
 }
 
-// udm=2 lands straight on the Images tab; "TARTER" keeps the brand's own listings on top.
+// Yard SKUs carry the brand in their suffix: "…CL" units are CountyLine (Tractor
+// Supply's line, built by Tarter), everything else is branded Tarter. Searching the
+// wrong brand buries the real product, so pick it from the suffix.
+function skuBrand(sku){
+  return /CL$/i.test(String(sku || "").trim()) ? "CountyLine" : "Tarter";
+}
+// udm=2 lands straight on Google's Images tab.
 function imageSearchUrl(sku){
-  return "https://www.google.com/search?udm=2&q=" + encodeURIComponent(sku + " TARTER");
+  return "https://www.google.com/search?udm=2&q=" + encodeURIComponent(sku + " " + skuBrand(sku));
 }
 $("#imageModalClose").onclick = () => $("#imageModal").classList.remove("show");
 $("#imageModal").addEventListener("click", e => { if(e.target.id === "imageModal") $("#imageModal").classList.remove("show"); });

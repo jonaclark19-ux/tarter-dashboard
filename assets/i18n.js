@@ -76,6 +76,8 @@
       "tool.import": "Import",
       "tool.importTitle": "Load data from JSON",
       "tool.excel": "Import Excel",
+      "tool.photoTemplate": "Photo sheet",
+      "tool.photoImport": "Load photos",
       "tool.excelTitle": "Import products from Excel/CSV in bulk",
       "tool.mto": "MTO Zones",
       "tool.mtoTitle": "Flexible areas (MTO / specials): a list of products with no fixed spot",
@@ -303,6 +305,19 @@
       "mto.noProducts": "No products found in the file",
 
       /* ---- import / export ---- */
+      /* ---- bulk photos ---- */
+      "photos.colSku": "Product",
+      "photos.colGroup": "Group",
+      "photos.colSearch": "Find photo (click)",
+      "photos.colImage": "Image — paste the URL here",
+      "photos.groupPrompt": "Which group do you want the photo sheet for?\nLeave it blank for the whole map.\n\nGroups: {groups}",
+      "photos.groupUnknown": "No group matches “{q}”",
+      "photos.templateReady": "Sheet downloaded — {n} products still need a photo",
+      "photos.allDone": "Every product already has a photo",
+      "photos.noRows": "No rows with a product and an image URL were found",
+      "photos.imported": "{n} photos loaded",
+      "photos.importedMissing": " · {n} SKUs are not on the map",
+
       "io.downloaded": "Downloaded tarter-yard-map.json",
       "io.imported": "Data imported",
       "io.importFailed": "That file could not be read as yard data",
@@ -394,6 +409,8 @@
       "tool.import": "Importar",
       "tool.importTitle": "Cargar datos desde un JSON",
       "tool.excel": "Importar Excel",
+      "tool.photoTemplate": "Hoja de fotos",
+      "tool.photoImport": "Cargar fotos",
       "tool.excelTitle": "Importar productos desde Excel/CSV en lote",
       "tool.mto": "Zonas MTO",
       "tool.mtoTitle": "Áreas flexibles (MTO / especiales): lista de productos sin lugar fijo",
@@ -621,6 +638,19 @@
       "mto.noProducts": "No encontré productos en el archivo",
 
       /* ---- import / export ---- */
+      /* ---- fotos en lote ---- */
+      "photos.colSku": "Producto",
+      "photos.colGroup": "Grupo",
+      "photos.colSearch": "Buscar foto (clic)",
+      "photos.colImage": "Imagen — pega aquí la URL",
+      "photos.groupPrompt": "¿De qué grupo quieres la hoja de fotos?\nDéjalo vacío para todo el mapa.\n\nGrupos: {groups}",
+      "photos.groupUnknown": "Ningún grupo coincide con “{q}”",
+      "photos.templateReady": "Hoja descargada — {n} productos sin foto",
+      "photos.allDone": "Todos los productos ya tienen foto",
+      "photos.noRows": "No se encontraron filas con producto y URL de imagen",
+      "photos.imported": "{n} fotos cargadas",
+      "photos.importedMissing": " · {n} SKUs no están en el mapa",
+
       "io.downloaded": "Se descargó tarter-yard-map.json",
       "io.imported": "Datos importados",
       "io.importFailed": "Ese archivo no se pudo leer como datos de la yarda",
