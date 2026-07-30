@@ -93,6 +93,21 @@ Cada ficha puede tener una foto de referencia:
   (por ejemplo, copiado desde una imagen ya confirmada en una búsqueda de Google
   Imágenes) — ambos funcionan igual.
 
+### Cómo llenar las fotos rápido
+
+En la ventana de la foto, un editor tiene el botón **🔍 Buscar imagen**: abre en otra
+pestaña una búsqueda de Google Imágenes con `SKU + TARTER` ya escrita. El flujo es:
+
+1. **🔍 Buscar imagen** → se abre la búsqueda de ese SKU.
+2. Ubicas el producto correcto, tocas la imagen y **copias la dirección de la imagen**.
+3. Vuelves y tocas **Poner foto** → pegas.
+
+> **Ojo con el peso:** una URL normal no ocupa nada, pero una imagen pegada en
+> `base64` se guarda completa dentro de `state.json` (~100–200 KB cada una). Para unos
+> pocos productos no hay problema; si le pones base64 a decenas de productos, el mapa
+> se vuelve pesado y **todos los celulares lo descargan en cada sincronización**.
+> Para grupos grandes, usa URLs.
+
 ## 4. Cómo funciona el reporte (lógica nueva)
 
 La opción vieja de *"mal ubicado"* se eliminó: no tenía sentido, porque si estabas
