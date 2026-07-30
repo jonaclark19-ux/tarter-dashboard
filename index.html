@@ -318,6 +318,10 @@
   <div class="report-box">
     <div class="report-head" id="reportHead">Report</div>
     <div class="report-body">
+      <div class="report-img-wrap">
+        <div class="report-img" id="reportImg" hidden><img id="reportImgEl" alt="" /></div>
+        <button class="img-edit-btn" id="reportImgBtn" hidden data-i18n-title="tile.setImageBtn">🖼️</button>
+      </div>
       <div class="report-q" data-i18n="report.chooseWhat">What do you want to report?</div>
       <button class="report-btn" data-reason="empty">
         <span class="ico">🕳️</span>
@@ -379,6 +383,20 @@
     <div class="report-foot spread">
       <button id="foundCancel" data-i18n="tool.cancel">Cancel</button>
       <button id="foundSubmit" class="primary" data-i18n="found.submit">Send report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= PRODUCT IMAGE -->
+<div class="report-modal" id="imageModal">
+  <div class="report-box" style="max-width:420px">
+    <div class="report-head" id="imageModalHead">Product</div>
+    <div class="report-body">
+      <div class="report-img" id="imageModalImgWrap"><img id="imageModalImg" alt="" /></div>
+    </div>
+    <div class="report-foot spread">
+      <button id="imageModalClose" data-i18n="tool.close">Close</button>
+      <button id="imageModalEdit" class="primary" hidden>Set photo</button>
     </div>
   </div>
 </div>
