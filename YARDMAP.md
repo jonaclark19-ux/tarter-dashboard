@@ -108,6 +108,30 @@ pestaña una búsqueda de Google Imágenes con `SKU + TARTER` ya escrita. El flu
 > se vuelve pesado y **todos los celulares lo descargan en cada sincronización**.
 > Para grupos grandes, usa URLs.
 
+### Fotos en lote (grupos completos, con Excel)
+
+Para llenar un grupo entero hay dos opciones nuevas en el **☰ Menú** (solo editores):
+
+| Opción | Qué hace |
+|---|---|
+| **🗒 Hoja de fotos** | Te pregunta de qué grupo y descarga un Excel con **solo los productos que aún no tienen foto**: SKU, grupo, un **enlace de búsqueda ya listo** y una columna vacía para pegar la URL |
+| **🖼 Cargar fotos** | Lee ese mismo Excel (ya lleno) y aplica todas las fotos de golpe, buscando cada producto por su SKU |
+
+Flujo: **Hoja de fotos** → abres el Excel → clic en el enlace de cada fila → copias la
+dirección de la imagen → la pegas en la última columna → guardas → **Cargar fotos**.
+Al terminar te dice cuántas cargó y cuántos SKUs del archivo no existen en el mapa.
+Si vuelves a pedir la hoja, los que ya tienen foto **ya no aparecen**, así que puedes
+avanzar por tandas sin repetir trabajo.
+
+Las columnas se reconocen por su nombre, así que también sirve una hoja hecha a mano:
+basta una columna de producto (`producto`, `product`, `sku`, `item`, `código`) y una de
+imagen (`imagen`, `image`, `foto`, `url`, `link`).
+
+> **Marca según el sufijo:** el buscador usa la marca correcta automáticamente —
+> los SKU que terminan en **`BL`** son **Tarter** (*black*, el color) y los que terminan
+> en **`CL`** son **CountyLine**, la línea que Tarter fabrica para Tractor Supply.
+> Buscar la marca equivocada entierra el producto real entre resultados que no son.
+
 ## 4. Cómo funciona el reporte (lógica nueva)
 
 La opción vieja de *"mal ubicado"* se eliminó: no tenía sentido, porque si estabas
