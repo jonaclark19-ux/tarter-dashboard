@@ -72,6 +72,27 @@ Después de guardarlas, haz **Deploys → Trigger deploy → Clear cache and dep
 
 ---
 
+## 3.1 Foto del producto
+
+Cada ficha puede tener una foto de referencia:
+
+- **Al tocar una ficha en el mapa** (modo vista, no edición), el reporte del producto
+  ahora muestra su foto arriba si tiene una guardada.
+- Un **editor** ve un botón 🖼️ para poner/cambiar/quitar la foto (se pega una URL de
+  imagen; dejarlo vacío la quita).
+- Esa misma foto aparece también cuando alguien **reconoce el SKU** en el flujo de
+  "Encontré un producto" (escaneo o SKU escrito a mano), para confirmar visualmente
+  que es el producto correcto antes de mandar el reporte.
+- Útil sobre todo para productos que se confunden fácil entre sí (p. ej. `HF20BL`
+  contra `HF30BL`, `BP20BL`, etc.): con la foto puesta, cualquiera puede verificar
+  el producto sin tener que memorizar el código.
+- **En los resultados de búsqueda** cada producto tiene un ícono 📷/🖼️ que abre una
+  ventana grande con su foto (o el botón para ponerla, si eres editor). Sirve para
+  confirmar visualmente el producto antes de ir a buscarlo en la yarda.
+- El campo acepta cualquier URL de imagen normal, **o un enlace `data:image/...;base64,…`**
+  (por ejemplo, copiado desde una imagen ya confirmada en una búsqueda de Google
+  Imágenes) — ambos funcionan igual.
+
 ## 4. Cómo funciona el reporte (lógica nueva)
 
 La opción vieja de *"mal ubicado"* se eliminó: no tenía sentido, porque si estabas
