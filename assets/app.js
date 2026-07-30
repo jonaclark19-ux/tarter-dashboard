@@ -849,13 +849,21 @@ function paintResults(total){
         <div class="rb" style="background:#C98A2E">★</div>
         <div class="rtext"><div class="rsku">${hl(r.sku,q)}</div><div class="rloc">${esc(t("search.mtoLoc",{zone:r.zone}))}</div></div>
         <div class="arrow">→</div></div>`;
+      const tile=data.tiles[r.i];
       return `<div class="ritem ${i===activeIdx?"active":""}" data-i="${i}">
         <div class="rb" style="background:${color(r.g)}">${esc(r.g)}</div>
         <div class="rtext"><div class="rsku">${hl(r.sku,q)}</div><div class="rloc">${esc(groupName(r.g))}</div></div>
+        <button class="rimg" data-img-i="${i}" title="${esc(t("tile.viewImage"))}">${tile&&tile.img?"🖼️":"📷"}</button>
         <div class="arrow">→</div></div>`;
     }).join("");
   resultsBox.classList.add("show");
   resultsBox.querySelectorAll(".ritem").forEach(it=>it.onclick=()=>choose(currentResults[+it.dataset.i]));
+  resultsBox.querySelectorAll(".rimg").forEach(btn=>btn.onclick=e=>{
+    e.stopPropagation();
+    const r=currentResults[+btn.dataset.imgI];
+    if(r.flex) return;
+    openImageViewer(r.i);
+  });
 }
 function paintActive(){ resultsBox.querySelectorAll(".ritem").forEach(it=>it.classList.toggle("active",+it.dataset.i===activeIdx));
   const a=resultsBox.querySelector(".ritem.active"); if(a) a.scrollIntoView({block:"nearest"}); }
@@ -1456,8 +1464,45 @@ function openTileReport(i){
   reportCtx = { i, sku: tile.sku, at: tileCentre(tile), g: tile.g };
   $("#reportHead").textContent = t("report.forSku", { sku: tile.sku });
   $("#reportNote").value = "";
+  updateReportImage(tile);
   $("#reportModal").classList.add("show");
 }
+
+function updateReportImage(tile){
+  const box = $("#reportImg"), img = $("#reportImgEl"), btn = $("#reportImgBtn");
+  if(tile.img){ box.hidden = false; img.src = tile.img; } else { box.hidden = true; img.removeAttribute("src"); }
+  btn.hidden = !canEdit();
+  btn.onclick = () => setTileImage(tile);
+}
+
+function setTileImage(tile){
+  if(!canEdit()){ toast(t("session.noPermission")); return; }
+  const v = prompt(t("tile.imagePrompt"), tile.img || "");
+  if(v == null) return;
+  const url = v.trim();
+  if(!url){ delete tile.img; toast(t("tile.imageRemoved")); }
+  else { tile.img = url; toast(t("tile.imageSet")); }
+  save();
+  updateReportImage(tile);
+}
+
+function openImageViewer(i){
+  const tile = data.tiles[i]; if(!tile) return;
+  $("#imageModalHead").textContent = tile.sku;
+  const wrap = $("#imageModalImgWrap");
+  if(tile.img){
+    wrap.classList.remove("empty"); wrap.innerHTML = `<img id="imageModalImg" alt="" src="${esc(tile.img)}" />`;
+  } else {
+    wrap.classList.add("empty"); wrap.textContent = t("tile.noImage");
+  }
+  const editBtn = $("#imageModalEdit");
+  editBtn.hidden = !canEdit();
+  editBtn.textContent = tile.img ? t("tile.changeImageBtn") : t("tile.setImageBtn");
+  editBtn.onclick = () => { setTileImage(tile); openImageViewer(i); };
+  $("#imageModal").classList.add("show");
+}
+$("#imageModalClose").onclick = () => $("#imageModal").classList.remove("show");
+$("#imageModal").addEventListener("click", e => { if(e.target.id === "imageModal") $("#imageModal").classList.remove("show"); });
 
 $("#closeReportBtn").onclick = () => $("#reportModal").classList.remove("show");
 $("#reportModal").addEventListener("click", e => {
@@ -1523,6 +1568,7 @@ function updateFoundUi(){
     const tile = data.tiles[r.tileIdx];
     box.className = "lookup ok";
     box.innerHTML =
+      (tile.img ? `<img class="lookup-img" src="${esc(tile.img)}" alt="" />` : "") +
       `<span class="lsku">${esc(r.sku)}</span>` +
       `<span class="lmsg">${esc(t("found.expected", { loc: groupName(tile.g) || "—" }))}</span>` +
       `<div class="lact"><button data-act="show">${esc(t("alerts.goto"))}</button></div>`;
