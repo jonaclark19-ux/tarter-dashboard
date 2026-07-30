@@ -452,6 +452,12 @@ body.viewer .editor-only{display:none}
 .img-edit-btn:hover{border-color:var(--amber)}
 .report-img.empty{display:flex;align-items:center;justify-content:center;min-height:120px;
   color:var(--muted);font-size:13px}
+.img-help{margin:10px 0 0;font-size:12px;line-height:1.55;color:var(--muted)}
+.img-help b{color:var(--ink);font-weight:600}
+/* Keeps “Find photo” + “Set photo” side by side on a phone instead of stacking. */
+.foot-acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex:1;min-width:0}
+.foot-acts button{white-space:nowrap;padding:9px 12px}
+.foot-acts button.primary{padding:10px 14px}
 
 /* ---------------------------------------------------- pick-a-spot ---- */
 .pickbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));

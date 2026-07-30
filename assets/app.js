@@ -1499,7 +1499,24 @@ function openImageViewer(i){
   editBtn.hidden = !canEdit();
   editBtn.textContent = tile.img ? t("tile.changeImageBtn") : t("tile.setImageBtn");
   editBtn.onclick = () => { setTileImage(tile); openImageViewer(i); };
+
+  // Editors get a one-tap jump to Google Images for this SKU, so filling in
+  // photos for a whole group is copy-paste rather than typing each search.
+  const searchBtn = $("#imageModalSearch");
+  searchBtn.hidden = !canEdit();
+  searchBtn.textContent = t("tile.searchImage");
+  searchBtn.onclick = () => window.open(imageSearchUrl(tile.sku), "_blank", "noopener");
+
+  const help = $("#imageModalHelp");
+  help.hidden = !canEdit() || !!tile.img;
+  help.innerHTML = t("tile.searchImageHelp");
+
   $("#imageModal").classList.add("show");
+}
+
+// udm=2 lands straight on the Images tab; "TARTER" keeps the brand's own listings on top.
+function imageSearchUrl(sku){
+  return "https://www.google.com/search?udm=2&q=" + encodeURIComponent(sku + " TARTER");
 }
 $("#imageModalClose").onclick = () => $("#imageModal").classList.remove("show");
 $("#imageModal").addEventListener("click", e => { if(e.target.id === "imageModal") $("#imageModal").classList.remove("show"); });
