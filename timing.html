@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiempos del dashboard</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --ink:#1b1f24; --mute:#667085; --line:#e4e7ec; --ok:#12805c; --warn:#b54708; --bad:#b42318; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#101318; --card:#181c22; --ink:#e8eaed; --mute:#98a2b3; --line:#2a3039; --ok:#47cd89; --warn:#fdb022; --bad:#f97066; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--mute); margin: 0 0 18px; font-size: 14px; }
+  .cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card .k { color:var(--mute); font-size:13px; }
+  .card .v { font-size:30px; font-weight:700; font-variant-numeric: tabular-nums; }
+  .card .h { color:var(--mute); font-size:12px; }
+  .wrap { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow-x:auto; }
+  table { border-collapse: collapse; width:100%; font-variant-numeric: tabular-nums; }
+  th, td { padding:8px 12px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-size:12px; color:var(--mute); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+  tr:last-child td { border-bottom:0; }
+  .ok { color:var(--ok); font-weight:600; } .warn { color:var(--warn); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .mute { color:var(--mute); }
+  .note { color:var(--mute); font-size:13px; margin-top:14px; }
+  .err { color:var(--bad); margin: 10px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tiempos: Excel → dashboard → TVs</h1>
+  <p class="sub" id="sub">Cargando…</p>
+  <div class="cards">
+    <div class="card"><div class="k">Excel guardado → dashboard</div><div class="v" id="m1">–</div><div class="h">mediana · OneDrive + lectura</div></div>
+    <div class="card"><div class="k">Dashboard → TVs</div><div class="v" id="m2">–</div><div class="h">mediana · internet + caché + chequeo</div></div>
+    <div class="card"><div class="k">Total hasta la TV más lenta</div><div class="v" id="m3">–</div><div class="h">mediana por cambio</div></div>
+  </div>
+  <div id="err" class="err"></div>
+  <div class="wrap"><table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <p class="note">
+    "Excel guardado" es la hora en que SharePoint guardó el archivo (autoguardado de Excel, normalmente segundos
+    después de escribir). Solo se registran cambios reales de números, no los latidos. Las TVs se nombran
+    agregando <b>&amp;screen=Nombre</b> a su link. Se actualiza cada 10 s.
+  </p>
+</main>
+<script>
+  function fmtS(v) { return v === null || v === undefined ? "–" : v + " s"; }
+  function cls(v, good, ok) { return v === null || v === undefined ? "mute" : v <= good ? "ok" : v <= ok ? "warn" : "bad"; }
+  function hhmmss(iso) { return iso ? new Date(iso).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "–"; }
+  function el(tag, text, className) { const e = document.createElement(tag); e.textContent = text; if (className) e.className = className; return e; }
+
+  async function load() {
+    const err = document.getElementById("err");
+    let data;
+    try {
+      const r = await fetch("/api/timing?limit=30", { cache: "no-store" });
+      data = await r.json();
+      if (!r.ok) throw new Error(data.message || ("HTTP " + r.status));
+      err.textContent = "";
+    } catch (e) { err.textContent = "No se pudo leer: " + e.message; return; }
+
+    document.getElementById("m1").textContent = fmtS(data.medians.excelToDashboard);
+    document.getElementById("m2").textContent = fmtS(data.medians.dashboardToScreens);
+    document.getElementById("m3").textContent = fmtS(data.medians.total);
+    document.getElementById("sub").textContent = data.changes.length
+      ? data.changes.length + " cambios registrados · actualizado " + hhmmss(data.serverTime)
+      : "Todavía no hay cambios registrados. Cambia un número en el Excel y espera ~1 minuto.";
+
+    const head = document.getElementById("head");
+    head.replaceChildren();
+    ["Excel guardado", "Archivo", "Dashboard lo tomó", "Excel → dashboard"].concat(data.screens.map((s) => "TV " + s), ["Total"])
+      .forEach((h) => head.appendChild(el("th", h)));
+
+    const rows = document.getElementById("rows");
+    rows.replaceChildren();
+    data.changes.forEach((c) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(el("td", hhmmss(c.filesSavedAt)));
+      tr.appendChild(el("td", (c.file || "–").replace(/\.xlsx?$/i, "")));
+      tr.appendChild(el("td", hhmmss(c.changedAt)));
+      tr.appendChild(el("td", fmtS(c.excelToDashboard), cls(c.excelToDashboard, 30, 60)));
+      data.screens.forEach((name) => {
+        const s = c.screens.find((x) => x.screen === name);
+        tr.appendChild(el("td", s ? fmtS(s.seconds) : "–", s ? cls(s.seconds, 15, 30) : "mute"));
+      });
+      tr.appendChild(el("td", fmtS(c.total), cls(c.total, 45, 90)));
+      rows.appendChild(tr);
+    });
+  }
+  load();
+  setInterval(load, 10000);
+</script>
+</body>
+</html>
