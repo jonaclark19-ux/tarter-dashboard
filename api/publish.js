@@ -1,6 +1,16 @@
-import { setSnapshot, logChange } from "../lib/db.js";
+import { getSnapshot, setSnapshot, logChange } from "../lib/db.js";
 
 const MAX_BYTES = 200 * 1024;
+
+// Postgres jsonb reorders object keys, so compare with sorted keys.
+function canonical(value) {
+  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value).sort().filter((k) => value[k] !== undefined)
+      .map((k) => JSON.stringify(k) + ":" + canonical(value[k])).join(",") + "}";
+  }
+  return JSON.stringify(value === undefined ? null : value);
+}
 
 function validIso(value) {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : null;
@@ -38,6 +48,21 @@ export default async function handler(req, res) {
     _filesSavedAt: validIso(body.filesSavedAt)
   });
 
+  // The first send after the source page (re)opens can't tell a real edit from a plain
+  // reload on its own; compare with what the TVs had before overwriting it.
+  let realChange = body.changed === true && body.firstAfterLoad !== true;
+  if (body.changed === true && body.firstAfterLoad === true) {
+    try {
+      const prev = await getSnapshot();
+      if (prev && prev.data) {
+        const old = Object.assign({}, prev.data);
+        delete old._changedAt;
+        delete old._filesSavedAt;
+        realChange = canonical(old) !== canonical(result);
+      }
+    } catch (err) {}
+  }
+
   try {
     await setSnapshot(data, typeof body.sourceLabel === "string" ? body.sourceLabel.slice(0, 300) : "");
   } catch (err) {
@@ -46,7 +71,7 @@ export default async function handler(req, res) {
   }
   // Timing log: a real edit (not the first send after the source page opened). Never
   // fails the publish - the TVs matter more than the stats.
-  if (body.changed === true && body.firstAfterLoad !== true) {
+  if (realChange) {
     try {
       await logChange({
         changed_at: data._changedAt,

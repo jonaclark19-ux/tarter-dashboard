@@ -53,6 +53,14 @@ check(db.change_seen[0] && db.change_seen[0].changed_at === db.change_log[0].cha
 check((await post("/api/seen", { changedAt: "2001-01-01T00:00:00Z", screen: "x" })).status === 400, "old stamp rejected");
 check((await post("/api/seen", { changedAt: new Date().toISOString() })).status === 400, "missing screen rejected");
 
+// 4b. a reload whose first send carries different numbers IS a real change
+db.row.data = Object.fromEntries(Object.entries(db.row.data).reverse()); // jsonb key order
+await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-01-01" }), changedAt: new Date(Date.now() - 1000).toISOString(), changed: true, firstAfterLoad: true });
+check(db.change_log.length === 1, "reload with same numbers (reordered keys) not logged");
+await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-02-02" }), changedAt: new Date().toISOString(), changed: true, firstAfterLoad: true });
+check(db.change_log.length === 2, "reload with new numbers is logged");
+db.change_log.pop();
+
 // 5. timing API + page
 const t = await (await fetch(base + "/api/timing")).json();
 console.log(JSON.stringify(t, null, 1).slice(0, 900));
