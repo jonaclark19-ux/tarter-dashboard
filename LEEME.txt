@@ -10,8 +10,8 @@ CÓMO FUNCIONA
   servidor (Vercel + Supabase) al instante. Si nada cambió, igual manda un
   "latido" una vez por minuto para avisar que sigue viva.
 - Todas las demás pantallas (Smart TV, PC, celular) solo abren un link y
-  leen lo último que mandó la fuente cada 15 s. Sin login, sin carpeta.
-  (15 s mantiene ~10 TVs x 13 h x lunes-viernes dentro del plan gratis de
+  leen lo último que mandó la fuente cada 30 s. Sin login, sin carpeta.
+  (30 s mantiene ~10 TVs x 13 h x lunes-viernes dentro del plan gratis de
   Vercel: 1 millón de consultas al mes.)
 
 LINKS
@@ -49,7 +49,7 @@ Abrir en cualquier PC o celular:
   https://tarter-west-dashboard.vercel.app/timing.html
 Muestra cada cambio real de números con:
   Excel guardado -> dashboard   (SharePoint -> OneDrive -> lectura de la PC fuente)
-  Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 15 s)
+  Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 30 s)
   Total                         (hasta la TV más lenta)
 Para que cada TV salga con su nombre, agregar &screen=Nombre a su link, ej.:
   https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1&screen=Soldadura

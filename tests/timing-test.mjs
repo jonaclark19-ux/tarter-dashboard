@@ -44,7 +44,7 @@ check(/after the Excel was saved/.test(r.status) && /\b(29|30|31) s\b/.test(r.st
 
 // 3. the TV picks it up on its next poll and acks once
 await tv.waitForFunction(() => /2099/.test(document.body.textContent) || true, null, { timeout: 1000 });
-const deadline = Date.now() + 25000;
+const deadline = Date.now() + 45000;
 while (!db.change_seen.length && Date.now() < deadline) await new Promise((res) => setTimeout(res, 500));
 check(db.change_seen.length === 1 && db.change_seen[0].screen === "Lobby", "TV acked with its screen name");
 check(db.change_seen[0] && db.change_seen[0].changed_at === db.change_log[0].changed_at, "ack matches the logged change");
