@@ -2298,6 +2298,11 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   // SharePoint library, network share, local copy) or a URL that serves the workbook
   // (local bridge script, Netlify feed, Power Automate output).
   var SYNC_MIN_MS = 1e4;
+  // The source PC only reads its own synced folder (free), so it checks often. Viewer
+  // screens each cost one Vercel request per check; 30 s keeps ~10 TVs x 13 h x 22 days
+  // (~345k requests/month) well inside the free 1M.
+  var SOURCE_CHECK_MS = 5e3;
+  var VIEWER_CHECK_MS = 3e4;
   var SYNC_LS = { url: "tarter-feed-url", interval: "tarter-feed-interval", name: "tarter-feed-name" };
   var IDB_NAME = "tarter-dashboard";
   var IDB_STORE = "handles";
@@ -2794,7 +2799,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   }
 
   function readIntervalMs() {
-    return SYNC_MIN_MS;
+    return sync.mode === "folder" ? SOURCE_CHECK_MS : VIEWER_CHECK_MS;
   }
   function startUrlSync(url, opts) {
     const clean = String(url || "").trim();

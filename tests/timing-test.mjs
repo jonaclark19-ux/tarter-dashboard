@@ -44,7 +44,7 @@ check(/after the Excel was saved/.test(r.status) && /\b(29|30|31) s\b/.test(r.st
 
 // 3. the TV picks it up on its next poll and acks once
 await tv.waitForFunction(() => /2099/.test(document.body.textContent) || true, null, { timeout: 1000 });
-const deadline = Date.now() + 25000;
+const deadline = Date.now() + 45000;
 while (!db.change_seen.length && Date.now() < deadline) await new Promise((res) => setTimeout(res, 500));
 check(db.change_seen.length === 1 && db.change_seen[0].screen === "Lobby", "TV acked with its screen name");
 check(db.change_seen[0] && db.change_seen[0].changed_at === db.change_log[0].changed_at, "ack matches the logged change");
@@ -52,6 +52,14 @@ check(db.change_seen[0] && db.change_seen[0].changed_at === db.change_log[0].cha
 // 4. bad acks rejected
 check((await post("/api/seen", { changedAt: "2001-01-01T00:00:00Z", screen: "x" })).status === 400, "old stamp rejected");
 check((await post("/api/seen", { changedAt: new Date().toISOString() })).status === 400, "missing screen rejected");
+
+// 4b. a reload whose first send carries different numbers IS a real change
+db.row.data = Object.fromEntries(Object.entries(db.row.data).reverse()); // jsonb key order
+await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-01-01" }), changedAt: new Date(Date.now() - 1000).toISOString(), changed: true, firstAfterLoad: true });
+check(db.change_log.length === 1, "reload with same numbers (reordered keys) not logged");
+await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-02-02" }), changedAt: new Date().toISOString(), changed: true, firstAfterLoad: true });
+check(db.change_log.length === 2, "reload with new numbers is logged");
+db.change_log.pop();
 
 // 5. timing API + page
 const t = await (await fetch(base + "/api/timing")).json();
