@@ -1,0 +1,110 @@
+TARTER DASHBOARD - UNA PC FUENTE, MUCHAS PANTALLAS
+====================================================
+
+CÓMO FUNCIONA
+-------------
+- UNA PC (la "fuente") abre el dashboard normal y tiene "Connect Folder"
+  conectado a la carpeta sincronizada de OneDrive. Es la única que lee los
+  Excel.
+- Cada 10 s revisa la carpeta. Si cambió CUALQUIER número, lo envía al
+  servidor (Vercel + Supabase) al instante. Si nada cambió, igual manda un
+  "latido" una vez por minuto para avisar que sigue viva.
+- Todas las demás pantallas (Smart TV, PC, celular) solo abren un link y
+  leen lo último que mandó la fuente. Sin login, sin carpeta.
+
+LINKS
+-----
+PC fuente (dejar siempre abierta, con la carpeta conectada):
+  https://tarter-west-dashboard.vercel.app/
+
+Todas las demás pantallas / TVs:
+  https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1
+
+Tamaño manual (solo si alguna TV lo necesita; normalmente NO hace falta):
+  agregar &scale=0.8 (u otro número entre 0.25 y 3) al final del link.
+
+QUÉ VER EN LA PC FUENTE
+-----------------------
+Abajo a la derecha, en la línea de estado, aparece:
+  "TVs updated 02:31:05 PM"            -> todo bien
+  "TVs NOT updated: HTTP 503 - ..."    -> el servidor rechazó el envío; el
+                                          mensaje dice por qué. Reintenta
+                                          solo en el siguiente chequeo.
+
+QUÉ VER EN LAS TVs
+------------------
+Etiqueta de arriba: "TV MODE · DATA 02:31 PM · SCALE AUTO 53% · NEXT CHECK 7S"
+  DATA = la última vez que la PC fuente confirmó sus datos.
+Si la PC fuente se apaga, se cierra la pestaña o pierde la carpeta por más
+de 3 minutos, la TV muestra un aviso rojo en el pie de página:
+  "SOURCE PC OFFLINE · DATA FROM 02:31 PM"
+Los números que se ven son los últimos que mandó (no se borran). El aviso
+desaparece solo cuando la fuente vuelve.
+
+MEDIR LOS TIEMPOS
+-----------------
+Abrir en cualquier PC o celular:
+  https://tarter-west-dashboard.vercel.app/timing.html
+Muestra cada cambio real de números con:
+  Excel guardado -> dashboard   (SharePoint -> OneDrive -> lectura de la PC fuente)
+  Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 10 s)
+  Total                         (hasta la TV más lenta)
+Para que cada TV salga con su nombre, agregar &screen=Nombre a su link, ej.:
+  https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1&screen=Soldadura
+(Sin nombre la TV igual aparece, con un código tipo "screen-a1b2c".)
+La PC fuente también lo muestra en su línea de estado:
+  "TVs updated 02:31:05 PM · last change seen 34 s after the Excel was saved"
+Lo que NO se puede medir automático: desde que escribes en la celda hasta que
+Excel autoguarda en SharePoint (suele ser unos segundos). Para eso, anota la
+hora exacta al escribir y compárala con "Excel guardado" en la tabla.
+
+REGLAS PARA QUE NO FALLE
+------------------------
+1. La PC fuente debe quedar prendida, sin suspenderse, con la pestaña del
+   dashboard ABIERTA y VISIBLE (si se minimiza o queda atrás de otra
+   ventana mucho tiempo, Chrome/Edge la frenan y los datos llegan tarde).
+2. Solo UNA PC debe tener "Connect Folder" conectado. Si dos PCs lo tienen,
+   las dos publican y se pisan entre sí.
+3. Si en la PC fuente cambias la fecha a mano (Selected Date), las TVs van
+   a mostrar esa fecha también.
+4. Supabase (plan gratis) pausa el proyecto si pasa 7 días sin uso (por
+   ejemplo vacaciones largas). Si las TVs dan error al volver, entra a
+   supabase.com -> proyecto tarter-dashboard-feed -> "Restore project".
+
+AJUSTE AUTOMÁTICO DEL TAMAÑO EN TV
+----------------------------------
+El modo TV siempre dibuja el diseño de pantalla ancha (4 tarjetas en una
+fila) y lo escala para llenar la pantalla, aunque el navegador de la TV
+reporte un ancho menor al real (pasa en Hisense y otras Smart TV).
+Probado en: pantalla tipo Hisense (960x540 reportado), 720p, 1366x768,
+1080p y 4K - en todas llena la pantalla completa, sin cortes.
+
+CONFIGURACIÓN (ya hecha, solo referencia)
+-----------------------------------------
+- Vercel -> Settings -> Environment Variables:
+    SUPABASE_SERVICE_ROLE_KEY = la llave SECRETA de Supabase (sb_secret_...)
+  Si por error se pega la publicable (sb_publishable_...), el sistema ahora
+  lo dice claramente en vez de dar un 401 confuso.
+- Supabase: proyecto "tarter-dashboard-feed", tablas dashboard_snapshot,
+  change_log y change_seen (estas dos solo guardan tiempos; ya están creadas).
+- El link de las TVs se cachea 5 segundos en Vercel, así que da igual
+  cuántas TVs haya: el servidor recibe más o menos la misma carga que con
+  una sola (queda dentro del plan gratis).
+
+SEGURIDAD
+---------
+/api/feed-snapshot y /api/publish son públicos (así se decidió): quien
+tenga el link ve los datos, y quien conozca /api/publish podría mandar
+datos falsos. Si algún día preocupa, se puede agregar una clave simple.
+La llave de Supabase nunca llega al navegador.
+
+ARCHIVOS
+--------
+index.html            el dashboard (fuente y TVs usan el mismo archivo)
+api/publish.js        recibe los datos de la PC fuente
+api/feed-snapshot.js  entrega los datos a las TVs
+api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)
+api/timing.js         calcula los tiempos para timing.html
+timing.html           tabla de tiempos
+lib/db.js             lectura/escritura en Supabase
+vercel.json           cabeceras (no-cache en la página, caché corto en la API)
