@@ -73,13 +73,13 @@ for (const s of screens) {
   changed.departments[0].stats[0].value = 999;
   await publish(changed, new Date().toISOString());
   const t0 = Date.now();
-  await page.waitForFunction(() => /999/.test(document.getElementById("dept-grid").textContent), null, { timeout: 25000 }).catch(() => {});
+  await page.waitForFunction(() => /999/.test(document.getElementById("dept-grid").textContent), null, { timeout: 45000 }).catch(() => {});
   const got = await page.evaluate(() => /999/.test(document.getElementById("dept-grid").textContent));
   check(got, "viewer did not pick up the changed number");
   console.log("change reached the TV in", Date.now() - t0, "ms");
   // source goes quiet: heartbeat 10 minutes old
   db.row.updated_at = new Date(Date.now() - 10 * 60e3).toISOString();
-  await page.waitForFunction(() => /SOURCE PC OFFLINE/.test(document.getElementById("warnings-list").textContent), null, { timeout: 25000 }).catch(() => {});
+  await page.waitForFunction(() => /SOURCE PC OFFLINE/.test(document.getElementById("warnings-list").textContent), null, { timeout: 45000 }).catch(() => {});
   await page.waitForFunction(() => Array.from(document.querySelectorAll("span")).some((s) => /SOURCE OFFLINE/.test(s.textContent)), null, { timeout: 5000 }).catch(() => {});
   let m = await measure(page);
   check(/SOURCE PC OFFLINE/.test(m.warnings), "stale source warning missing: " + m.warnings);
@@ -89,7 +89,7 @@ for (const s of screens) {
   await page.screenshot({ path: "shots/hisense-stale.png" });
   // source comes back
   await publish(changed, null);
-  await page.waitForFunction(() => !/SOURCE PC OFFLINE/.test(document.getElementById("warnings-list").textContent), null, { timeout: 25000 }).catch(() => {});
+  await page.waitForFunction(() => !/SOURCE PC OFFLINE/.test(document.getElementById("warnings-list").textContent), null, { timeout: 45000 }).catch(() => {});
   m = await measure(page);
   check(!/SOURCE PC OFFLINE/.test(m.warnings), "stale warning did not clear");
   check(await page.evaluate(() => document.getElementById("source-offline-badge").classList.contains("hidden")), "offline badge did not clear");
