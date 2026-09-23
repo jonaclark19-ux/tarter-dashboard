@@ -3,16 +3,45 @@
     {
       "source": "/((?!api/).*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/tv",
+      "destination": "/?src=/api/feed-snapshot&tv=1",
+      "permanent": false
+    },
+    {
+      "source": "/tv/:screen",
+      "destination": "/?src=/api/feed-snapshot&tv=1&screen=:screen",
+      "permanent": false
+    },
+    {
+      "source": "/tiempos",
+      "destination": "/timing.html",
+      "permanent": false
     }
   ]
 }
