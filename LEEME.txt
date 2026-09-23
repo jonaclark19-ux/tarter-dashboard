@@ -19,8 +19,11 @@ LINKS
 PC fuente (dejar siempre abierta, con la carpeta conectada):
   https://tarter-west-dashboard.vercel.app/
 
-Todas las demás pantallas / TVs:
-  https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1
+Todas las demás pantallas / TVs (link corto):
+  https://tarter-west-dashboard.vercel.app/tv
+Con nombre de pantalla (para la tabla de tiempos):
+  https://tarter-west-dashboard.vercel.app/tv/Soldadura
+(El link largo ?src=/api/feed-snapshot&tv=1 sigue funcionando igual.)
 
 Tamaño manual (solo si alguna TV lo necesita; normalmente NO hace falta):
   agregar &scale=0.8 (u otro número entre 0.25 y 3) al final del link.
@@ -46,7 +49,7 @@ desaparece solo cuando la fuente vuelve.
 MEDIR LOS TIEMPOS
 -----------------
 Abrir en cualquier PC o celular:
-  https://tarter-west-dashboard.vercel.app/timing.html
+  https://tarter-west-dashboard.vercel.app/tiempos
 Muestra cada cambio real de números con:
   Excel guardado -> dashboard   (SharePoint -> OneDrive -> lectura de la PC fuente)
   Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 30 s)
