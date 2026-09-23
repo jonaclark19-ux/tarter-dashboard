@@ -34,9 +34,10 @@ export default async function handler(req, res) {
     fileName: row.source_label || "published snapshot"
   });
 
-  // Cached for a few seconds at Vercel's edge: every TV polls every 10 s, and this keeps
-  // the function (and Supabase) at roughly one call per few seconds however many TVs
-  // there are. Browsers still revalidate every time (max-age=0).
-  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=5, stale-while-revalidate=5");
+  // Cached 15 s at Vercel's edge: TVs poll every 30 s, so this keeps the function (and
+  // Supabase) at about one call per 15 s however many TVs there are - well inside the
+  // Hobby plan's Active CPU allowance - for ~5 s more average delay. Browsers still
+  // revalidate every time (max-age=0).
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=15, stale-while-revalidate=15");
   res.status(200).json(payload);
 }
