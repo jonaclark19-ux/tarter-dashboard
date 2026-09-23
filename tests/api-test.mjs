@@ -24,7 +24,7 @@ assert.equal(r.body.updatedAt, t1, "updatedAt = changedAt");
 assert.equal(r.body.departments.length, 4);
 assert.ok(r.body.heartbeatAt && r.body.serverTime);
 assert.equal(r.body._changedAt, undefined, "internal fields hidden");
-assert.match(r.cache, /s-maxage=5/);
+assert.match(r.cache, /s-maxage=15\b/);
 const beat1 = r.body.heartbeatAt;
 // heartbeat: same changedAt, heartbeat moves, updatedAt does not
 await new Promise((res) => setTimeout(res, 20));

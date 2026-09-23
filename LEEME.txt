@@ -52,7 +52,7 @@ Abrir en cualquier PC o celular:
   https://tarter-west-dashboard.vercel.app/tiempos
 Muestra cada cambio real de números con:
   Excel guardado -> dashboard   (SharePoint -> OneDrive -> lectura de la PC fuente)
-  Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 30 s)
+  Dashboard -> cada TV          (internet + caché de 15 s + chequeo cada 30 s)
   Total                         (hasta la TV más lenta)
 Para que cada TV salga con su nombre, agregar &screen=Nombre a su link, ej.:
   https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1&screen=Soldadura
@@ -92,7 +92,7 @@ CONFIGURACIÓN (ya hecha, solo referencia)
   lo dice claramente en vez de dar un 401 confuso.
 - Supabase: proyecto "tarter-dashboard-feed", tablas dashboard_snapshot,
   change_log y change_seen (estas dos solo guardan tiempos; ya están creadas).
-- El link de las TVs se cachea 5 segundos en Vercel, así que da igual
+- El link de las TVs se cachea 15 segundos en Vercel, así que da igual
   cuántas TVs haya: el servidor recibe más o menos la misma carga que con
   una sola (queda dentro del plan gratis).
 
