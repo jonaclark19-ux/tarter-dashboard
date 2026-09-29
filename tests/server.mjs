@@ -45,7 +45,7 @@ globalThis.fetch = async (url, opts = {}) => {
 };
 
 const handlers = {};
-for (const name of ["publish", "feed-snapshot", "seen", "timing"]) {
+for (const name of ["publish", "feed-snapshot", "seen", "timing", "keepalive"]) {
   handlers[name] = (await import(pathToFileURL(path.join(root, "api", name + ".js")).href)).default;
 }
 
@@ -58,6 +58,7 @@ function adapt(res) {
 
 export const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
+  if (url.pathname === "/__hang") return; // never answers: exercises request deadlines
   const m = /^\/api\/([\w-]+)$/.exec(url.pathname);
   if (m && handlers[m[1]]) {
     let raw = "";
@@ -73,7 +74,7 @@ export const server = http.createServer(async (req, res) => {
     // Test-only copy: expose the IIFE's internals so the publish logic can be driven directly.
     const html = fs.readFileSync(file, "utf8");
     const i = html.lastIndexOf("})();");
-    return res.end(html.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state };\n" + html.slice(i));
+    return res.end(html.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid };\n" + html.slice(i));
   }
   if (db.failWrites && false) {}
   fs.createReadStream(file).pipe(res);
