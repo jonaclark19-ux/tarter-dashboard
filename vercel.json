@@ -43,5 +43,11 @@
       "destination": "/timing.html",
       "permanent": false
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 11 * * *"
+    }
   ]
 }

@@ -192,6 +192,37 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   var SHIFT_START_HOUR = 5;
   var SHIFT_END_HOUR = 15;
   var SHIFT_END_MINUTE = 30;
+  // Shift times are plant wall-clock times. Every screen uses the plant's time zone -
+  // the source PC's own, carried in the feed - instead of whatever zone its device
+  // happens to be set to, so a TV box set up with the wrong zone still shows the right
+  // SHIFT TIME LEFT, projection and clock. &tz=Area/City in the link overrides it.
+  var plantTimeZone = null;
+  var plantTzFormatter = null;
+  var plantTzFromUrl = false;
+  function setPlantTimeZone(tz) {
+    if (!tz || tz === plantTimeZone) return;
+    try {
+      plantTzFormatter = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+      plantTimeZone = tz;
+    } catch (err) {
+      // Unknown zone name: keep using the device's own clock.
+    }
+  }
+  /** Now, as a Date whose local fields (getHours() etc.) read the plant's wall clock. */
+  function plantNow() {
+    const real = new Date();
+    if (!plantTzFormatter) return real;
+    const p = {};
+    for (const part of plantTzFormatter.formatToParts(real)) p[part.type] = part.value;
+    return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute), Number(p.second), real.getMilliseconds());
+  }
+  function deviceTimeZone() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch (err) { return null; }
+  }
+  (function () {
+    const m = /[?&]tz=([^&]+)/.exec(location.search);
+    if (m) { setPlantTimeZone(decodeURIComponent(m[1])); plantTzFromUrl = plantTimeZone !== null; }
+  })();
   var PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR = 10;
   var EXPECTED_HEADCOUNT = { welding: 16, paint: 10, tanks: 7, fab: 4 };
   var UPLH_GOAL_FALLBACK = { welding: 4 };
@@ -331,7 +362,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       }
       if (this.personnelActive !== null && this.personnelExpected !== null && this.personnelActive < this.personnelExpected) {
         const missing = this.personnelExpected - this.personnelActive;
-        const now = /* @__PURE__ */ new Date();
+        const now = plantNow();
         if (now.getHours() < PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR) {
           return { level: 4, color: "bg-red-600 border-red-600 text-white", animate: "animate-pulse-border", icon: "\u26A0", title: "SHORTAGE", message: `MISSING ${missing} WORKER${missing === 1 ? "" : "S"}` };
         }
@@ -389,7 +420,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     if (!selectedDateISO || selectedDateISO !== todayISO()) {
       return { elapsedMinutes: totalMinutes, remainingMinutes: 0, fraction: 1, isHistorical: true, complete: true };
     }
-    const now = /* @__PURE__ */ new Date();
+    const now = plantNow();
     const shiftStart = new Date(now);
     shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
     const shiftEnd = new Date(now);
@@ -495,7 +526,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     };
   }
   function getShiftRemaining() {
-    const now = /* @__PURE__ */ new Date();
+    const now = plantNow();
     const shiftEnd = new Date(now);
     shiftEnd.setHours(SHIFT_END_HOUR, SHIFT_END_MINUTE, 0, 0);
     if (now > shiftEnd) return "ENDED";
@@ -620,7 +651,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   }
   function renderDeptCard(data) {
     try {
-      const now = /* @__PURE__ */ new Date();
+      const now = plantNow();
       const shiftStart = new Date(now);
       shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
       const elapsedMinutes = Math.max(0, Math.floor((now - shiftStart) / 6e4));
@@ -794,11 +825,29 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     </div>`;
     }
   }
-  function renderDeptGrid(departments) {
-    document.getElementById("dept-grid").innerHTML = departments.map(renderDeptCard).join("");
+  function renderDeptGrid(departments, missing) {
+    const cards = departments.map((d) => ({ id: d.id, html: renderDeptCard(d) }));
+    for (const m of missing || []) {
+      if (m && m.id && !cards.some((c) => c.id === m.id)) cards.push({ id: m.id, html: renderMissingCard(m) });
+    }
+    const order = DEPT_SOURCES.map((d) => d.id);
+    const rank = (id) => { const i = order.indexOf(id); return i === -1 ? order.length : i; };
+    cards.sort((a, b) => rank(a.id) - rank(b.id));
+    document.getElementById("dept-grid").innerHTML = cards.map((c) => c.html).join("");
+  }
+  function renderMissingCard(m) {
+    return `
+      <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-5 xl:p-6 flex flex-col relative overflow-hidden border-t-[6px] border-t-slate-800 h-full" data-missing-dept="${escapeHtml(m.id)}">
+        <div class="text-xl xl:text-2xl font-black text-tarter-navy tracking-tight mb-1 uppercase truncate">${escapeHtml(m.name || m.id)}</div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:32px 8px">
+          <div style="font-size:44px;line-height:1;color:#b42318" aria-hidden="true">\u26A0</div>
+          <div style="font-size:28px;font-weight:900;letter-spacing:.08em;color:#b42318">NO DATA</div>
+          <div style="font-size:17px;font-weight:800;letter-spacing:.05em;color:#334155;text-transform:uppercase;line-height:1.35">${escapeHtml(m.reason || "Check the Excel sheet")}</div>
+        </div>
+      </div>`;
   }
   function renderFooterAlert(departments) {
-    const now = /* @__PURE__ */ new Date();
+    const now = plantNow();
     const shiftStart = new Date(now);
     shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
     const elapsedMinutes = Math.max(0, Math.floor((now - shiftStart) / 6e4));
@@ -1805,9 +1854,15 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       for (const w of legacy.warnings) warnings.push(w);
     }
 
+    // A department with no card would just leave a hole on the TVs; send a placeholder
+    // that says what is missing so people on the floor know whom to tell.
+    const missing = [];
     for (const source of DEPT_SOURCES) {
       if (!departments.some((d) => d.id === source.id)) {
+        const specific = warnings.find((w) => w.indexOf(source.label + ":") === 0);
+        const hadFile = files.some((f) => { const d = deptForFileName(f.fileName); return d && d.id === source.id; });
         warnings.push(source.label + ": no data. Expected a file whose name contains \"" + source.fileMatch.source + "\" in the connected folder.");
+        missing.push({ id: source.id, name: source.label, reason: missingReason(specific, hadFile) });
       }
     }
     if (departments.length === 0) {
@@ -1815,7 +1870,14 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     }
     const order = DEPT_SOURCES.map((d) => d.id);
     departments.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-    return { selectedDate: selectedDateISO, selectedWeekStart: weekMondayISO(selectedDateISO), departments, warnings, fabWorkers, sources: sourcesUsed, parsed };
+    return { selectedDate: selectedDateISO, selectedWeekStart: weekMondayISO(selectedDateISO), departments, missing, warnings, fabWorkers, sources: sourcesUsed, parsed };
+  }
+  /** Short, TV-sized reason for a department card that has no data. */
+  function missingReason(warning, hadFile) {
+    const m = warning && /no tab named (\d{4})-(\d{2})-(\d{2})/.exec(warning);
+    if (m) return "Tab " + Number(m[2]) + "." + Number(m[3]) + "." + m[1] + " missing in the Excel";
+    if (!hadFile) return "Excel file not found";
+    return "Check the Excel sheet";
   }
 
   async function buildDashboardData(arrayBuffer, selectedDateISO) {
@@ -1867,7 +1929,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     statusTone: TV_SNAPSHOT && TV_SNAPSHOT.result ? "success" : "sample"
   };
   function updateClock() {
-    const now = /* @__PURE__ */ new Date();
+    const now = plantNow();
     document.getElementById("clock-time").textContent = now.toLocaleTimeString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit", second: "2-digit" });
     document.getElementById("clock-date").textContent = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }).toUpperCase();
     updateShiftKpi();
@@ -2060,7 +2122,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     const departments = state.result ? state.result.departments : sampleDepartmentData;
     const warnings = state.result ? state.result.warnings : [];
     renderTopKpis(departments);
-    renderDeptGrid(departments);
+    renderDeptGrid(departments, state.result ? state.result.missing : null);
     renderFooterAlert(departments);
     const dsLabel = document.getElementById("data-source-label");
     const uploadLabel = document.getElementById("upload-label-text");
@@ -2452,7 +2514,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   }
 
   function todayISO() {
-    const d = /* @__PURE__ */ new Date();
+    const d = plantNow();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
   // A display left running overnight has to roll onto the new day by itself.
@@ -2582,9 +2644,26 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   // cost the backend about the same as one. A cache-busting query string would give
   // every poll a unique URL and defeat that, so it is only added for other feeds.
   var SHARED_FEED_RE = /\/api\/feed-snapshot(\?|$)/;
+  // A request caught by a Wi-Fi drop can hang for minutes before the browser gives up,
+  // and while it hangs the screen stops checking (and the source PC stops its heartbeat).
+  // Every request gets a deadline; the next scheduled check simply tries again.
+  var FETCH_TIMEOUT_MS = 2e4;
+  function fetchWithTimeout(url, opts, ms) {
+    const limit = ms || FETCH_TIMEOUT_MS;
+    if (typeof AbortController === "undefined") return fetch(url, opts);
+    const ctrl = new AbortController();
+    // Not cleared on success on purpose: the deadline also covers reading the body,
+    // and aborting a request that already finished does nothing.
+    setTimeout(() => ctrl.abort(), limit);
+    return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).catch((err) => {
+      if (err && err.name === "AbortError") throw new Error("no response in " + Math.round(limit / 1e3) + " s (network down?)");
+      throw err;
+    });
+  }
   async function fetchWorkbookBuffer(url) {
     const target = SHARED_FEED_RE.test(url) ? url : url + (url.indexOf("?") === -1 ? "?" : "&") + "_ts=" + Date.now();
-    const res = await fetch(target, { cache: "no-store" });
+    // A raw workbook can be megabytes; the shared JSON feed is a few KB.
+    const res = await fetchWithTimeout(target, { cache: "no-store" }, SHARED_FEED_RE.test(url) ? FETCH_TIMEOUT_MS : 6e4);
     if (!res.ok) throw new Error(await responseErrorText(res));
     return { buffer: await res.arrayBuffer(), stamp: res.headers.get("last-modified") || res.headers.get("etag") || "" };
   }
@@ -2683,6 +2762,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     const snapshot = payload.result && payload.result.departments ? payload.result : payload.departments ? payload : null;
     if (snapshot) {
       noteSourceHeartbeat(payload);
+      if (!plantTzFromUrl && typeof payload.timeZone === "string") setPlantTimeZone(payload.timeZone);
       // updatedAt only moves when the numbers change (heartbeats leave it alone), so an
       // unchanged feed doesn't re-render the TV every minute.
       const signature = stamp || JSON.stringify(snapshot).length + ":snap";
@@ -2713,7 +2793,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   function ackSeen(changedAt) {
     try {
       const url = new URL("seen", new URL(sync.url, location.href));
-      fetch(url.href, {
+      fetchWithTimeout(url.href, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changedAt, screen: screenName() })
@@ -2838,8 +2918,44 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     sync.timer = setTimeout(() => { syncNow(false); }, wait);
   }
 
+  // Screen Wake Lock: while this page is visible with a live source connected, the
+  // browser keeps the display on and Windows from going to sleep - no power settings
+  // or admin rights needed. The browser drops the lock when the tab is hidden; it is
+  // asked for again on the next check or when the tab comes back.
+  var screenWakeLock = null;
+  async function keepScreenAwake() {
+    if (screenWakeLock || sync.mode === "off" || document.visibilityState !== "visible") return;
+    if (!navigator.wakeLock || typeof navigator.wakeLock.request !== "function") return;
+    try {
+      screenWakeLock = await navigator.wakeLock.request("screen");
+      screenWakeLock.addEventListener("release", () => { screenWakeLock = null; });
+    } catch (err) {
+      screenWakeLock = null;
+    }
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") keepScreenAwake(); });
+
+  // A TV browser left open for weeks can slow down. Viewer screens reload themselves
+  // once a day at 3 AM plant time (outside the 5:00-15:30 shift) - but only after
+  // confirming the site answers, so a network outage at that minute can't strand the
+  // TV on a browser error page.
+  var DAILY_RELOAD_HOUR = 3;
+  var PAGE_LOADED_AT = Date.now();
+  async function maybeDailyReload() {
+    if (sync.mode !== "url" || plantNow().getHours() !== DAILY_RELOAD_HOUR) return;
+    if (Date.now() - PAGE_LOADED_AT < 2 * 36e5) return;
+    try {
+      const res = await fetchWithTimeout(location.pathname + "?_alive=" + Date.now(), { cache: "no-store" }, 15e3);
+      if (res.ok) location.reload();
+    } catch (err) {
+      // Site unreachable right now: keep showing the last data and try next minute.
+    }
+  }
+  setInterval(maybeDailyReload, 6e4);
+
   async function syncNow(force) {
     if (sync.mode === "off" || sync.busy) return;
+    keepScreenAwake();
     sync.busy = true;
     sync.diagnostic = [];
     sync.lastCheckAt = Date.now();
@@ -2992,7 +3108,9 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       departments: result.departments,
       warnings: result.warnings,
       fabWorkers: result.fabWorkers,
-      sources: result.sources
+      sources: result.sources,
+      missing: result.missing || [],
+      timeZone: plantTimeZone || deviceTimeZone()
     };
   }
   async function publishSnapshot(result, sourceLabel) {
@@ -3004,7 +3122,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     const changedAt = changed ? new Date().toISOString() : publishState.changedAt;
     publishState.inFlight = true;
     try {
-      const resp = await fetch("/api/publish", {
+      const resp = await fetchWithTimeout("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3159,7 +3277,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   setInterval(updateClock, 1e3);
   updateClock();
   setInterval(render, 6e4);
-  var todayInit = /* @__PURE__ */ new Date();
+  var todayInit = plantNow();
   document.getElementById("date-input").value = `${todayInit.getFullYear()}-${String(todayInit.getMonth() + 1).padStart(2, "0")}-${String(todayInit.getDate()).padStart(2, "0")}`;
   render();
   bootstrapAutoSync(TV_SNAPSHOT);

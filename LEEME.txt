@@ -63,6 +63,23 @@ Lo que NO se puede medir automático: desde que escribes en la celda hasta que
 Excel autoguarda en SharePoint (suele ser unos segundos). Para eso, anota la
 hora exacta al escribir y compárala con "Excel guardado" en la tabla.
 
+PROTECCIONES AUTOMÁTICAS
+------------------------
+- Si falta la pestaña de un departamento (ej. la semana nueva de Tanks), su
+  tarjeta aparece igual con "NO DATA" y el motivo (ej. "Tab 9.28.2026 missing
+  in the Excel") en vez de desaparecer.
+- Si el WiFi se cae a mitad de una consulta, se corta a los 20 s y se reintenta
+  en el siguiente chequeo (antes la TV o la PC fuente podían quedarse pegadas).
+- La PC fuente, con la carpeta conectada y la pestaña visible, pide al navegador
+  mantener la pantalla encendida (evita que Windows se suspenda).
+- Las TVs se recargan solas una vez al día a las 3 AM (hora de la planta), solo si
+  el sitio responde.
+- Todas las pantallas usan la zona horaria de la PC fuente para el reloj, el
+  turno y la proyección, aunque el aparato de la TV tenga otra zona configurada.
+  (&tz=America/Denver en el link la fuerza a mano si hiciera falta.)
+- Vercel consulta Supabase una vez al día (api/keepalive) para que el plan
+  gratis no se pause por inactividad.
+
 REGLAS PARA QUE NO FALLE
 ------------------------
 1. La PC fuente debe quedar prendida, sin suspenderse, con la pestaña del
@@ -72,8 +89,8 @@ REGLAS PARA QUE NO FALLE
    las dos publican y se pisan entre sí.
 3. Si en la PC fuente cambias la fecha a mano (Selected Date), las TVs van
    a mostrar esa fecha también.
-4. Supabase (plan gratis) pausa el proyecto si pasa 7 días sin uso (por
-   ejemplo vacaciones largas). Si las TVs dan error al volver, entra a
+4. Supabase (plan gratis) pausa el proyecto tras 7 días sin uso; la consulta
+   diaria automática lo evita. Si aun así las TVs dieran error, entra a
    supabase.com -> proyecto tarter-dashboard-feed -> "Restore project".
 
 AJUSTE AUTOMÁTICO DEL TAMAÑO EN TV
@@ -110,6 +127,7 @@ api/publish.js        recibe los datos de la PC fuente
 api/feed-snapshot.js  entrega los datos a las TVs
 api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)
 api/timing.js         calcula los tiempos para timing.html
+api/keepalive.js      consulta diaria (Vercel Cron) para que Supabase no se pause
 timing.html           tabla de tiempos
 lib/db.js             lectura/escritura en Supabase
 vercel.json           cabeceras (no-cache en la página, caché corto en la API)

@@ -12,6 +12,17 @@ function canonical(value) {
   return JSON.stringify(value === undefined ? null : value);
 }
 
+// What counts as "the numbers changed": bookkeeping fields and the source's time zone
+// don't, and an empty missing-departments list is the same as none.
+function comparable(data) {
+  const out = Object.assign({}, data);
+  delete out._changedAt;
+  delete out._filesSavedAt;
+  delete out.timeZone;
+  if (Array.isArray(out.missing) && out.missing.length === 0) delete out.missing;
+  return out;
+}
+
 function validIso(value) {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : null;
 }
@@ -55,10 +66,7 @@ export default async function handler(req, res) {
     try {
       const prev = await getSnapshot();
       if (prev && prev.data) {
-        const old = Object.assign({}, prev.data);
-        delete old._changedAt;
-        delete old._filesSavedAt;
-        realChange = canonical(old) !== canonical(result);
+        realChange = canonical(comparable(prev.data)) !== canonical(comparable(result));
       }
     } catch (err) {}
   }
