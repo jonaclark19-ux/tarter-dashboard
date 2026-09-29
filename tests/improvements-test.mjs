@@ -83,6 +83,65 @@ check(view.oneRow, "four cards stay in one row");
 check(view.clock.slice(0, 5) === tokyoClock.slice(0, 5), "TV clock uses the plant zone (" + view.clock + " vs Tokyo " + tokyoClock + "), not the device's New York zone");
 await tv.screenshot({ path: "shots/missing-card.png" });
 
+// (6) TVs never download the Excel reader; the source loads it on demand
+const tvRequests = [];
+const ctx2 = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+const tv2 = await ctx2.newPage();
+tv2.on("request", (r) => tvRequests.push(r.url()));
+tv2.on("pageerror", (e) => errors.push("tv2: " + e.message));
+
+// (1) per-department freshness: pick a zone where it is mid-shift right now
+const zones = ["Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York", "America/Sao_Paulo", "Atlantic/Azores", "Europe/London", "Europe/Berlin", "Europe/Moscow", "Asia/Dubai", "Asia/Kolkata", "Asia/Bangkok", "Asia/Shanghai", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"];
+const hourIn = (z) => Number(new Intl.DateTimeFormat("en-US", { timeZone: z, hour: "numeric", hourCycle: "h23" }).format(new Date())) % 24;
+const zone = zones.find((z) => hourIn(z) >= 8 && hourIn(z) <= 13);
+const zoneDate = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const fresh = JSON.parse(JSON.stringify(fixture));
+fresh.selectedDate = zoneDate;
+fresh.timeZone = zone;
+fresh.sources = [
+  { id: "fab", label: "FAB", fileName: "f.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 90 * 6e4).toISOString() },
+  { id: "welding", label: "WELDING", fileName: "w.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 5 * 6e4).toISOString() }
+];
+await post("/api/publish", { result: fresh, changedAt: new Date().toISOString() });
+await tv2.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await tv2.waitForFunction(() => /EXCEL SAVED/i.test(document.getElementById("dept-grid").textContent), null, { timeout: 15000 }).catch(() => {});
+const cardsText = await tv2.evaluate(() => Array.from(document.getElementById("dept-grid").children).map((c) => c.textContent.replace(/\s+/g, " ")));
+check(/No Excel update for 1H 30M/i.test(cardsText[0] || ""), "FAB card flags 90 min without an Excel save (" + zone + ")");
+check(/Excel saved/i.test(cardsText[1] || "") && !/No Excel update/i.test(cardsText[1] || ""), "WELDING card shows its save time");
+check(!tvRequests.some((u) => /vendor\/xlsx\.js/.test(u)), "TV never downloads the Excel reader");
+const badgeToday = await tv2.evaluate(() => getComputedStyle(document.getElementById("data-day-badge")).display);
+check(badgeToday === "none", "no 'showing another day' badge when the data is today's");
+
+// (3) data for another day -> header badge
+const old = JSON.parse(JSON.stringify(fresh));
+old.selectedDate = "2026-09-25";
+await post("/api/publish", { result: old, changedAt: new Date().toISOString() });
+await tv2.waitForFunction(() => getComputedStyle(document.getElementById("data-day-badge")).display !== "none", null, { timeout: 50000 }).catch(() => {});
+const badge = await tv2.evaluate(() => document.getElementById("data-day-badge").textContent);
+check(/Showing Fri, Sep 25/i.test(badge), "header says which day is shown: " + badge);
+await tv2.screenshot({ path: "shots/freshness.png" });
+
+const xl = await src.evaluate(async () => { await window.__t.ensureXlsx(); await window.__t.ensureXlsx(); return typeof XLSX !== "undefined" && typeof XLSX.read === "function" && document.querySelectorAll("script[src$='vendor/xlsx.js']").length; });
+check(xl === 1, "source loads the Excel reader once on demand");
+
+// Real workbook through the upload path on a fresh page (reader not loaded yet)
+const b64 = await src.evaluate(() => {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["DAILY WELDING"], ["Date:", "9/29/2026"], ["Pieces welded", 12]]), "9.29.2026");
+  return XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+});
+const up = await browser.newPage();
+const upReq = [];
+up.on("request", (r) => upReq.push(r.url()));
+up.on("pageerror", (e) => errors.push("upload: " + e.message));
+up.on("console", (m) => { if (/parse/i.test(m.text())) console.log("   [upload console]", m.text().slice(0, 200)); });
+await up.goto(base + "/");
+await up.setInputFiles("#file-input", { name: "Daily Production Weld.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: Buffer.from(b64, "base64") });
+await up.waitForTimeout(3000);
+const upText = await up.evaluate(() => document.body.textContent);
+check(upReq.some((u) => /vendor\/xlsx\.js/.test(u)), "uploading a workbook loads the Excel reader");
+check(await up.evaluate(() => typeof XLSX !== "undefined" && typeof XLSX.read === "function"), "workbook parsed without a loader error");
+
 // Keep-alive endpoint
 const ka = await fetch(base + "/api/keepalive");
 const kaBody = await ka.json();

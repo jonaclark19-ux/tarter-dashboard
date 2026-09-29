@@ -77,6 +77,14 @@ PROTECCIONES AUTOMÁTICAS
 - Todas las pantallas usan la zona horaria de la PC fuente para el reloj, el
   turno y la proyección, aunque el aparato de la TV tenga otra zona configurada.
   (&tz=America/Denver en el link la fuerza a mano si hiciera falta.)
+- Cada tarjeta muestra "EXCEL SAVED 10:42 AM" (cuándo se guardó por última vez
+  el Excel de ese departamento). Durante el turno, si pasa 1 hora sin guardar,
+  se pone en rojo: "NO EXCEL UPDATE FOR 1H 05M".
+- Sábado y domingo el dashboard muestra los datos del viernes, y arriba aparece
+  un aviso amarillo "WEEKEND · SHOWING FRI, SEP 26". El mismo aviso sale si
+  alguien elige otra fecha a mano en la PC fuente.
+- Las TVs ya no descargan el lector de Excel (vendor/xlsx.js): la página pesa la
+  mitad. Solo la PC fuente lo carga, la primera vez que lee un Excel.
 - Vercel consulta Supabase una vez al día (api/keepalive) para que el plan
   gratis no se pause por inactividad.
 
@@ -130,4 +138,5 @@ api/timing.js         calcula los tiempos para timing.html
 api/keepalive.js      consulta diaria (Vercel Cron) para que Supabase no se pause
 timing.html           tabla de tiempos
 lib/db.js             lectura/escritura en Supabase
+vendor/xlsx.js        lector de Excel (solo lo carga la PC fuente)
 vercel.json           cabeceras (no-cache en la página, caché corto en la API)
