@@ -1898,7 +1898,21 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     const n = Number(value);
     return Number.isFinite(n) ? clampTvScale(n) : null;
   }
+  // &pad=N (0-15) keeps an N% blank margin on every side of the TV page. For TVs that
+  // zoom their HDMI input ("overscan") and cut the edges off, with no picture-size
+  // setting to turn it off: the dashboard shrinks itself into the part that is visible.
+  var TV_PAD_PCT = (function () {
+    const m = /[?&]pad=([0-9.]+)/.exec(location.search);
+    const n = m ? Number(m[1]) : 0;
+    return Number.isFinite(n) ? Math.min(15, Math.max(0, n)) : 0;
+  })();
   function viewportSize() {
+    const full = rawViewportSize();
+    const ox = Math.round(full.w * TV_PAD_PCT / 100);
+    const oy = Math.round(full.h * TV_PAD_PCT / 100);
+    return { w: full.w - 2 * ox, h: full.h - 2 * oy, ox, oy, fullW: full.w, fullH: full.h };
+  }
+  function rawViewportSize() {
     const vv = window.visualViewport;
     const winW = Math.round((vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || TV_DESIGN_WIDTH);
     const winH = Math.round((vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 1000);
@@ -1928,10 +1942,13 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     const html = document.documentElement;
     const body = document.body;
     html.style.overflow = "hidden";
-    html.style.width = view.w + "px";
-    html.style.height = view.h + "px";
+    html.style.width = (view.fullW || view.w) + "px";
+    html.style.height = (view.fullH || view.h) + "px";
     body.style.transformOrigin = "top left";
-    body.style.transform = "scale(" + scale + ")";
+    const shift = view.ox || view.oy ? "translate(" + (view.ox || 0) + "px, " + (view.oy || 0) + "px) " : "";
+    body.style.transform = shift + "scale(" + scale + ")";
+    // The margin around a padded page shows the html element; match the page colour.
+    if (shift && !html.style.backgroundColor) html.style.backgroundColor = getComputedStyle(body).backgroundColor;
     body.style.width = (view.w - 2) / scale + "px";
     body.style.minHeight = (view.h - 2) / scale + "px";
     html.style.setProperty("--tv-scale", String(scale));
@@ -1960,7 +1977,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       "inner " + window.innerWidth + "x" + window.innerHeight + "  outer " + window.outerWidth + "x" + window.outerHeight,
       "screen " + (window.screen ? window.screen.width + "x" + window.screen.height : "?") + "  dpr " + window.devicePixelRatio,
       "visualViewport " + (vv ? Math.round(vv.width) + "x" + Math.round(vv.height) + " scale " + vv.scale : "n/a"),
-      "used " + view.w + "x" + view.h + "  tvScale " + scale,
+      "used " + view.w + "x" + view.h + (TV_PAD_PCT ? "  pad " + TV_PAD_PCT + "%" : "") + "  tvScale " + scale,
       "scroll " + window.scrollX + "," + window.scrollY
     ].join("\n");
   }
