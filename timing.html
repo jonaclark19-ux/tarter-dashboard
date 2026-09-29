@@ -33,8 +33,8 @@
   <h1>Tiempos: Excel → dashboard → TVs</h1>
   <p class="sub" id="sub">Cargando…</p>
   <div class="cards">
-    <div class="card"><div class="k">Excel guardado → dashboard</div><div class="v" id="m1">–</div><div class="h">mediana · OneDrive + lectura</div></div>
-    <div class="card"><div class="k">Dashboard → TVs</div><div class="v" id="m2">–</div><div class="h">mediana · internet + caché + chequeo</div></div>
+    <div class="card"><div class="k">Excel guardado → dashboard</div><div class="v" id="m1">–</div><div class="h">mediana · OneDrive + lectura de la PC fuente</div></div>
+    <div class="card"><div class="k">Dashboard → TVs</div><div class="v" id="m2">–</div><div class="h">mediana · revisión cada 30 s + caché 15 s</div></div>
     <div class="card"><div class="k">Total hasta la TV más lenta</div><div class="v" id="m3">–</div><div class="h">mediana por cambio</div></div>
   </div>
   <div id="err" class="err"></div>
@@ -43,9 +43,11 @@
     <tbody id="rows"></tbody>
   </table></div>
   <p class="note">
-    "Excel guardado" es la hora en que SharePoint guardó el archivo (autoguardado de Excel, normalmente segundos
-    después de escribir). Solo se registran cambios reales de números, no los latidos. Las TVs se nombran
-    agregando <b>&amp;screen=Nombre</b> a su link. Se actualiza cada 10 s.
+    "Excel guardado" es la hora en que SharePoint guardó el archivo. Ojo: con Excel en el navegador,
+    SharePoint guarda el archivo cada 1–5 minutos aunque en pantalla el cambio se vea al instante; ese tiempo
+    no aparece en esta tabla (para medirlo, anota la hora en que escribes el dato y compárala con esta columna).
+    Solo se registran cambios reales de números, no los avisos de "sigo viva". Las TVs se nombran usando
+    <b>/tv/Nombre</b> en su link. Esta página se actualiza cada 10 s.
   </p>
 </main>
 <script>

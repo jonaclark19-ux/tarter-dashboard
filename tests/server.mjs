@@ -69,12 +69,12 @@ export const server = http.createServer(async (req, res) => {
   }
   const file = path.join(root, url.pathname === "/" ? "index.html" : url.pathname);
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; return res.end("nf"); }
-  res.setHeader("content-type", file.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream");
+  res.setHeader("content-type", file.endsWith(".html") ? "text/html; charset=utf-8" : file.endsWith(".js") ? "text/javascript; charset=utf-8" : "application/octet-stream");
   if (file.endsWith("index.html") && url.searchParams.get("__test") === "1") {
     // Test-only copy: expose the IIFE's internals so the publish logic can be driven directly.
     const html = fs.readFileSync(file, "utf8");
     const i = html.lastIndexOf("})();");
-    return res.end(html.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid };\n" + html.slice(i));
+    return res.end(html.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx };\n" + html.slice(i));
   }
   if (db.failWrites && false) {}
   fs.createReadStream(file).pipe(res);
