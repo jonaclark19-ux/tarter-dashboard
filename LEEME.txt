@@ -35,7 +35,8 @@ DISEÑO (oficial desde 30-sep-2026)
     (lunes a hoy). Total shorts en piezas = "Total Short". Los productos cortos
     salen de COMMENTS de los trailers que tienen "Short per Load" (formato
     PRODUCTO-CANTIDAD, ej. "SO1347500 EWBL66-2,GUT22-1"); se muestran los 6
-    con más piezas. Meta semanal de trailers: agregar &loadgoal=20 al link.
+    con más piezas. Meta semanal de trailers: 20 (se puede cambiar con
+    &loadgoal=N en el link).
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
 

@@ -989,9 +989,9 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   // Loading strip: real numbers once the loading workbook exists; until then the
   // preview shows clearly-labelled sample numbers so the layout can be judged.
   var LOADING_SAMPLE = { weekStart: "2026-09-28", trailersWeek: 14, trailersToday: 3, piecesWeek: 2681, shortsWeek: 61, fulfillment: 0.977, shorts: [["WFGGSC4", 12], ["EWG4T", 6], ["6EG16E", 4], ["WFGGSC14", 3], ["ECG16T", 2], ["LAWOB8", 2], ["HSFR12", 1], ["2W66", 1]], sample: true };
-  // Weekly trailer goal for the progress bar. The loading workbook has no goal column;
-  // set a number here (or &loadgoal=20 in a link) to show "14 / 20" and the bar.
-  var LOADING_WEEKLY_GOAL = (function () { const m = /[?&]loadgoal=(\d+)/.exec(location.search); return m ? Number(m[1]) : null; })();
+  // Weekly trailer goal (the loading workbook has no goal column). &loadgoal=N in a
+  // link overrides it.
+  var LOADING_WEEKLY_GOAL = (function () { const m = /[?&]loadgoal=(\d+)/.exec(location.search); return m ? Number(m[1]) : 20; })();
   function renderLoadingBar() {
     const el = document.getElementById("loading-bar");
     if (!el) return;
