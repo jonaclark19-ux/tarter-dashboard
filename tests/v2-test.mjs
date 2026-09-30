@@ -122,6 +122,24 @@ const ld = await src.evaluate(() => {
   const days = t.parseLoadSignOff(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
   return { days: days.map((d) => d.iso), week: t.loadingFor([{ days }], "2026-09-30") };
 });
+// --- paint "currently painting": the top-most color that still has pieces to paint
+const paintColors = await src.evaluate(async () => {
+  await window.__t.ensureXlsx();
+  const sheetFor = (rows) => {
+    const aoa = [[null, null, null, null, null, "EMPLOYEES", 9, null, 90, null, 44]];
+    for (const r of rows) aoa.push(Array.from({ length: 18 }, (_, i) => (r[i] === undefined ? null : r[i])));
+    return XLSX.utils.aoa_to_sheet(aoa);
+  };
+  // columns: A name, B scheduled, E totals marker, F quantity, Q produced
+  const r = (a, b, f, q) => { const x = []; x[0] = a; if (b !== null) x[1] = b; if (f !== null) x[5] = f; if (q !== null) x[16] = q; return x; };
+  const tot = (b, q) => { const x = r("TOTAL", b, null, q); x[4] = "TOTAL"; return x; };
+  const midShift = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 40), r("BLACK", null, null, null), r("PROD2", 200, 200, null), tot(300, 40)]);
+  const greyDone = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 100), r("BLACK", null, null, null), r("PROD2", 200, 200, 10), tot(300, 110)]);
+  const allDone = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 100), r("BLACK", null, null, null), r("PROD2", 200, 200, 200), tot(300, 300)]);
+  const name = (sh) => { const d = window.__t.buildPaintFromSheet(sh, null, "2026-09-30", []); return d && d.currentColor ? d.currentColor.name : null; };
+  return [name(midShift), name(greyDone), name(allDone)];
+});
+check(paintColors.join(",") === "GREY,BLACK,BLACK", "currently painting follows the top-most unfinished color: " + paintColors.join(","));
 check(ld.days.join(",") === "2026-09-28,2026-09-29", "sign-off tabs read by date, impossible 9-31 skipped: " + ld.days.join(","));
 check(ld.week.trailersWeek === 4 && ld.week.piecesWeek === 672 && ld.week.shortsWeek === 31, "week totals from the tab summaries");
 const top = Object.fromEntries(ld.week.shorts);

@@ -1718,18 +1718,25 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       const sectionTotals = sectionStarts.map((section, i) => {
         const start = section.row;
         const end = i + 1 < sectionStarts.length ? sectionStarts[i + 1].row : totalsRow || range.e.r + 1;
-        let sectionTotal = 0;
+        let sectionTotal = 0, sectionSched = 0, sectionDone = 0, hasSched = false;
         for (let rr = start; rr < end; rr++) {
           const qVal = cellNumber(getCell(sheet, "Q" + rr), [], "");
           const fVal = cellNumber(getCell(sheet, "F" + rr), [], "");
+          const bVal = cellNumber(getCell(sheet, "B" + rr), [], "");
           if (qVal !== null) sectionTotal += qVal;
           else if (fVal !== null) sectionTotal += fVal;
+          if (bVal !== null && bVal > 0) { hasSched = true; sectionSched += bVal; if (qVal !== null) sectionDone += qVal; }
         }
-        return { name: section.name, total: sectionTotal };
+        return { name: section.name, total: sectionTotal, scheduled: sectionSched, done: sectionDone, hasSched };
       });
+      // Colors run top to bottom in the order they are painted, so the one in the
+      // booth is the first (top-most) color whose scheduled pieces are not all painted.
+      // A color further down that only has quantities filled in has not started yet.
+      const pending = sectionTotals.find((s) => s.hasSched && s.done < s.scheduled);
       const withProduction = sectionTotals.filter((s) => s.total > 0);
-      if (withProduction.length > 0) currentColorName = withProduction[withProduction.length - 1].name;
-      else currentColorName = sectionTotals[sectionTotals.length - 1].name;
+      if (pending) currentColorName = pending.name;
+      else if (withProduction.length > 0) currentColorName = withProduction[withProduction.length - 1].name;
+      else currentColorName = sectionTotals[0].name;
     }
     let downtimeMins = 0;
     const downtimeMessages = [];
