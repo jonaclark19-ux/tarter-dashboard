@@ -145,6 +145,26 @@ check(ld.week.trailersWeek === 4 && ld.week.piecesWeek === 672 && ld.week.shorts
 const top = Object.fromEntries(ld.week.shorts);
 check(top.GUT22 === 3 && top.EWBL66 === 2 && top["6EGR10CL"] === 10 && !top.RFM && !top["1PGB5"], "short products only from loads with shorts: " + ld.week.shorts.map((x) => x.join("x")).join(" "));
 
+// --- a department with 0 people present gets a NOT RUNNING cover and leaves the KPIs
+const fxDown = JSON.parse(JSON.stringify(fx));
+const tanksDown = fxDown.departments.find((d) => d.id === "tanks");
+tanksDown.headline.active = 0; tanksDown.headline.down = true;
+const fabBlank = fxDown.departments.find((d) => d.id === "fab");
+fabBlank.headline.active = 0; // blank cell (no down flag): no cover
+await fetch(base + "/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ result: fxDown, changedAt: new Date().toISOString() }) });
+const tvDown = await ctx.newPage();
+tvDown.on("pageerror", (e) => errors.push("tvDown: " + e.message));
+await tvDown.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await tvDown.waitForFunction(() => document.querySelector("[data-dept-down]"), null, { timeout: 15000 }).catch(() => {});
+const down = await tvDown.evaluate(() => ({
+  covers: Array.from(document.querySelectorAll("[data-dept-down]")).map((e) => e.dataset.deptDown),
+  text: (document.querySelector("[data-dept-down]") || {}).textContent || "",
+  personnel: Array.from(document.getElementById("top-kpis").children).map((c) => c.textContent.replace(/\s+/g, " ")).find((t) => /Active personnel/i.test(t)) || ""
+}));
+const expectedNoTanks = fxDown.departments.filter((d) => d.id !== "tanks").reduce((a, d) => a + d.headline.total, 0);
+check(down.covers.join(",") === "tanks" && /NOT RUNNING/i.test(down.text) && /0 personnel present/i.test(down.text), "0 present typed -> NOT RUNNING cover on that card only: " + down.covers.join(","));
+check(down.personnel.includes("/" + expectedNoTanks), "down department left out of the personnel KPI: " + down.personnel);
+await tvDown.screenshot({ path: new URL("./shots/dept-down.png", import.meta.url).pathname }).catch(() => {});
 check(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join(" | ") : ""));
 await browser.close(); server.close();
 console.log(failures.length ? "\nFAILURES: " + failures.length : "\nALL PASS");
