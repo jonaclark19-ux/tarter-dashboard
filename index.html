@@ -51,48 +51,59 @@ html.v2 header h1 { font-size: 22px !important; }
 html.v2 header h1 + p { font-size: 15px !important; color: rgba(255,255,255,.8) !important; }
 html.v2 #clock-time { font-size: 46px; }
 html.v2 #clock-date { font-size: 15px; }
-html.v2 #top-kpis h3 { font-size: 15px !important; }
-html.v2 #top-kpis .metric-num { font-size: 56px !important; line-height: 1 !important; }
-html.v2 #top-kpis .metric-num span { font-size: 30px !important; }
-html.v2 #top-kpis p { font-size: 17px !important; line-height: 1.25 !important; }
-html.v2 #top-kpis p + p { font-size: 14px !important; }
-html.v2 #top-kpis .bg-gradient-to-br p { font-size: 15px !important; white-space: nowrap; }
-html.v2 #top-kpis p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-html.v2 #top-kpis span.rounded { font-size: 13px !important; padding: 3px 8px !important; }
+html.v2 #top-kpis { gap: 14px !important; }
+html.v2 .kpi2 { display: flex; align-items: center; gap: 14px; min-width: 0; background: #fff; border: 1px solid #eef2f7; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 12px 18px; }
+html.v2 .kpi2-dark { background: linear-gradient(135deg, #1E293B, #013449); border: 0; color: #fff; }
+html.v2 .kpi2-num { font-size: 50px; font-weight: 900; line-height: 1; letter-spacing: -.02em; white-space: nowrap; flex-shrink: 0; }
+html.v2 .kpi2-num span { font-size: 28px; }
+html.v2 .kpi2-of { color: #cbd5e1; font-weight: 800; }
+html.v2 .kpi2-dark .kpi2-num { color: #fff; }
+html.v2 .kpi2-text { min-width: 0; }
+html.v2 .kpi2-title { font-size: 15px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #465569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.v2 .kpi2-dark .kpi2-title { color: rgba(255,255,255,.85); }
+html.v2 .kpi2-sub { font-size: 14px; font-weight: 700; color: #5b6b80; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+html.v2 .kpi2-dark .kpi2-sub { color: #e7d8b1; }
 html.v2 #dept-grid > div { padding: 18px 20px !important; }
 html.v2 .card-head { margin-bottom: 10px; }
-html.v2 .dept-name { font-size: 36px; line-height: 1.05; max-width: calc(100% - 190px); white-space: nowrap; overflow: hidden; }
+html.v2 .dept-name { font-size: 37px; line-height: 1.05; max-width: calc(100% - 185px); white-space: nowrap; overflow: hidden; }
+html.v2 #dept-grid .absolute.top-4.right-4 { top: 14px !important; right: 14px !important; padding: 4px 8px !important; font-size: 12px !important; letter-spacing: .04em !important; }
 html.v2 .card-subrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; min-width: 0; }
-html.v2 .card-pill { padding: 4px 10px; font-size: 18px; }
+html.v2 .card-pill { padding: 4px 10px; font-size: 20px; }
+html.v2 #dept-grid .freshness { font-size: 13px !important; }
+html.v2 #dept-grid .text-4xl.metric-num { font-size: 54px !important; }
+html.v2 #dept-grid .text-4xl.metric-num + div { font-size: 30px !important; }
+html.v2 #dept-grid .text-4xl.metric-num + div span { font-size: 15px !important; }
+html.v2 #dept-grid .text-4xl.metric-num { flex-shrink: 0; }
+html.v2 #dept-grid .flex.items-end.flex-wrap { flex-wrap: nowrap !important; }
 html.v2 .card-subrow .freshness { margin: 0 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.v2 #dept-grid .mb-5 { margin-bottom: 12px !important; }
 html.v2 #dept-grid .mb-6 { margin-bottom: 12px !important; }
 html.v2 #dept-grid .h-2\.5 { height: 16px !important; }
 html.v2 #dept-grid [class*="border-orange-200"], html.v2 #dept-grid [class*="border-amber-200"], html.v2 #dept-grid [class*="border-slate-200"].border.rounded-xl { padding-top: 10px !important; padding-bottom: 12px !important; }
-html.v2 #dept-grid .ring-slot + div > div:first-child { font-size: 17px !important; }
-html.v2 #dept-grid .ring-slot + div > div:last-child { font-size: 14px !important; }
-html.v2 #dept-grid .stat-lbl { font-size: 14px !important; }
-html.v2 #dept-grid .stat-val { font-size: 38px !important; line-height: 1.05 !important; }
+html.v2 #dept-grid .ring-slot + div > div:first-child { font-size: 19px !important; }
+html.v2 #dept-grid .ring-slot + div > div:last-child { font-size: 15px !important; }
+html.v2 #dept-grid .note-text { font-size: 16px !important; }
+html.v2 #dept-grid .stat-lbl { font-size: 15px !important; }
+html.v2 #dept-grid .stat-val { font-size: 44px !important; line-height: 1.05 !important; }
 html.v2 #dept-grid .stat-wide .stat-val { font-size: 22px !important; }
 html.v2 #dept-grid .note-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 html.v2 #dept-grid .card-notes > div { padding: 10px 14px !important; }
-html.v2 .safety-tile { height: 100%; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.12); background: #15803d; color: #fff; }
-html.v2 .safety-main { flex: 1; display: flex; align-items: center; gap: 16px; padding: 10px 18px; }
-html.v2 .safety-days { font-size: 64px !important; font-weight: 900; line-height: 1 !important; color: #fff; }
-html.v2 .safety-label { font-size: 15px; font-weight: 900; letter-spacing: .12em; line-height: 1.25; text-transform: uppercase; }
-html.v2 .safety-icon { margin-left: auto; font-size: 40px; }
-html.v2 .safety-topic { background: #0f5f2c; padding: 8px 18px 9px; display: flex; align-items: center; gap: 12px; }
-html.v2 .safety-tag { flex-shrink: 0; background: #facc15; color: #1b1f24; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 900; letter-spacing: .08em; line-height: 1.2; text-align: center; }
-html.v2 .safety-text { font-size: 16px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.v2 .safety-tile { height: 100%; display: flex; align-items: center; gap: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.12); background: #15803d; color: #fff; padding: 12px 18px; min-width: 0; }
+html.v2 .safety-days { font-size: 56px !important; font-weight: 900; line-height: 1 !important; color: #fff; flex-shrink: 0; }
+html.v2 .safety-label { font-size: 15px; font-weight: 900; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; flex-shrink: 0; }
+html.v2 .safety-icon { margin-left: auto; font-size: 38px; }
+html.v2 .safety-topic { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: #0f5f2c; border-radius: 8px; padding: 6px 12px; }
+html.v2 .safety-tag { align-self: flex-start; background: #facc15; color: #1b1f24; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 900; letter-spacing: .1em; }
+html.v2 .safety-text { font-size: 16px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 html.v2 .loading-strip { margin-top: 16px; display: flex; align-items: stretch; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; border-left: 8px solid #013449; }
 html.v2 .loading-trailers { padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 360px; flex-shrink: 0; border-right: 1px solid #e2e8f0; }
-html.v2 .loading-title { font-size: 22px; font-weight: 900; color: #013449; }
+html.v2 .loading-title { font-size: 32px; font-weight: 900; color: #013449; letter-spacing: -.01em; }
 html.v2 .loading-title { line-height: 1; }
-html.v2 .loading-sub { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: #5b6b80; text-transform: uppercase; }
+html.v2 .loading-sub { font-size: 14px; font-weight: 800; letter-spacing: .1em; color: #5b6b80; text-transform: uppercase; }
 html.v2 .loading-shorts-total .sub { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: #7a271a; text-transform: uppercase; }
 html.v2 .loading-count { display: flex; align-items: baseline; gap: 8px; }
 html.v2 .loading-count .lbl { font-size: 12px; font-weight: 900; letter-spacing: .1em; color: #5b6b80; }
-html.v2 .loading-count .num { font-size: 30px; font-weight: 900; color: #013449; line-height: 1; }
+html.v2 .loading-count .num { font-size: 36px; font-weight: 900; color: #013449; line-height: 1; }
 html.v2 .loading-count .goal { font-size: 17px; font-weight: 900; color: #16a34a; }
 html.v2 .loading-count .pct { margin-left: auto; font-size: 16px; font-weight: 900; color: #013449; }
 html.v2 .loading-track { height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
@@ -664,13 +675,24 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   `;
     const row = document.getElementById("top-kpis");
     if (LAYOUT_V2) {
+      // Low, horizontal tiles: big number, then title and one detail line beside it.
       const safety = renderSafetyTile(state && state.result ? state.result.safety : null);
-      row.innerHTML = safety + html
-        .replace(/<!-- KPI 3 -->[\s\S]*?(?=<!-- KPI 4 -->)/, "")
-        .replace(/<span class="px-1\.5 py-0\.5 text-\[8px\][^>]*>[\s\S]*?<\/span>/, "")
-        .replace(/<h3[^>]*>\s*Employees Present\s*<\/h3>/, "")
-        .replace(/<h3[^>]*>\s*Shift Time Left\s*<\/h3>/, "")
-        .replace(/>Projected (?=[\d,]+ units)/, ">");
+      const caption = String(kpis.attainment.caption || "").replace(/^Projected (?=[\d,]+ units)/, "");
+      const shiftWindow = `${String(SHIFT_START_HOUR > 12 ? SHIFT_START_HOUR - 12 : SHIFT_START_HOUR)}:00 AM \u2013 ${String(SHIFT_END_HOUR - 12)}:${String(SHIFT_END_MINUTE).padStart(2, "0")} PM`;
+      const short = kpis.employees.present < kpis.employees.expected;
+      row.innerHTML = safety + `
+      <div class="kpi2">
+        <div class="kpi2-num metric-num ${attColor}">${projectedValue}</div>
+        <div class="kpi2-text"><div class="kpi2-title">Projected end</div><div class="kpi2-sub">${escapeHtml(caption)}</div>${kpis.attainment.detail ? `<div class="kpi2-sub">${escapeHtml(kpis.attainment.detail)}</div>` : ""}</div>
+      </div>
+      <div class="kpi2">
+        <div class="kpi2-num metric-num ${short ? "text-red-500" : "text-green-600"}">${kpis.employees.present}<span class="kpi2-of">/${kpis.employees.expected}</span></div>
+        <div class="kpi2-text"><div class="kpi2-title">Active personnel</div><div class="kpi2-sub">Present / expected</div></div>
+      </div>
+      <div class="kpi2 kpi2-dark">
+        <div class="kpi2-num metric-num" id="shift-time-left">--:--</div>
+        <div class="kpi2-text"><div class="kpi2-title">Shift left</div><div class="kpi2-sub">${shiftWindow}</div></div>
+      </div>`;
       row.style.gridTemplateColumns = safety ? "1.35fr repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))";
     } else {
       row.innerHTML = html;
@@ -704,7 +726,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const hasWeek = data.weekAttainment !== null && data.weekAttainment !== void 0 && !Number.isNaN(data.weekAttainment);
     const cell = (value, label, sub) => `
       <div class="flex items-center gap-2.5 flex-1 min-w-0">
-        <div class="ring-slot flex-shrink-0" data-size-lg="56" data-size-sm="48">${progressRing(value, LAYOUT_V2 ? 76 : 56)}</div>
+        <div class="ring-slot flex-shrink-0" data-size-lg="56" data-size-sm="48">${progressRing(value, LAYOUT_V2 ? 84 : 56)}</div>
         <div class="min-w-0">
            <div class="text-[10px] xl:text-xs font-black text-slate-600 tracking-widest uppercase truncate leading-tight">${label}</div>
            <div class="text-[9px] xl:text-[10px] font-semibold text-slate-400 leading-tight">${sub}</div>
@@ -978,12 +1000,9 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (days === null && !(safety && safety.topic)) return "";
     return `
     <div class="safety-tile">
-      <div class="safety-main">
-        <div class="safety-days metric-num">${days === null ? "\u2013" : days.toLocaleString("en-US")}</div>
-        <div class="safety-label">Days<br>without<br>accidents</div>
-        <div class="safety-icon" aria-hidden="true">\u{1F9BA}</div>
-      </div>
-      ${safety && safety.topic ? `<div class="safety-topic"><span class="safety-tag">TODAY'S<br>TOPIC</span><span class="safety-text">${escapeHtml(safety.topic)}</span></div>` : ""}
+      <div class="safety-days metric-num">${days === null ? "\u2013" : days.toLocaleString("en-US")}</div>
+      <div class="safety-label">Days without<br>accidents</div>
+      ${safety && safety.topic ? `<div class="safety-topic"><span class="safety-tag">TODAY'S TOPIC</span><span class="safety-text">${escapeHtml(safety.topic)}</span></div>` : `<div class="safety-icon" aria-hidden="true">\u{1F9BA}</div>`}
     </div>`;
   }
   // Loading strip: real numbers once the loading workbook exists; until then the

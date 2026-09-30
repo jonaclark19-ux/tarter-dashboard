@@ -68,8 +68,10 @@ const v = await tv.evaluate(() => {
   return {
     kpis, txt, notesTop,
     scale: Number(document.body.dataset.tvScale),
+    kpiH: Math.round(document.getElementById("top-kpis").getBoundingClientRect().height / Number(document.body.dataset.tvScale)),
     loading: document.getElementById("loading-bar").textContent.replace(/\s+/g, " "),
-    overflowX: document.documentElement.scrollWidth > innerWidth + 1
+    overflowX: document.documentElement.scrollWidth > innerWidth + 1,
+    namesFit: Array.from(document.querySelectorAll(".dept-name")).every((n) => n.scrollWidth <= n.clientWidth + 1)
   };
 });
 const dayCount = Math.round((Date.UTC(...today.split("-").map((x, i) => i === 1 ? x - 1 : +x)) - Date.UTC(2025, 6, 1)) / 864e5);
@@ -82,9 +84,11 @@ check(!/WORKING ON/.test(v.txt[3]), "tanks: downtime replaces WORKING ON");
 check(new Set(v.notesTop.filter((x) => x !== null)).size === 1, "notes start at the same height on every card: " + v.notesTop.join(","));
 check(/NO UPDATE 2H 10M/i.test(v.txt[0]) && !/NO UPDATE/i.test(v.txt.slice(1).join(" ")), "stale flag only after 2 hours");
 check(/sample data/i.test(v.loading) && /TRAILERS/.test(v.loading) && /\/ 20/.test(v.loading) && /70%/.test(v.loading) && /TOTAL SHORTS/.test(v.loading) && /61PCS|61 PCS/.test(v.loading.replace(/\s+/g, "")) && /TOP 6 SHORT PRODUCTS/.test(v.loading), "preview fills the loading strip with labelled sample data");
-check(!/ON PACE|HIGH RISK|AT RISK|RECOVERY|BUILDING/.test(v.kpis[1]) && !/Employees Present/i.test(v.kpis[2]) && !/Shift Time Left/i.test(v.kpis[3]), "KPI tiles: no status badge on PROJECTED, no titles on EMPLOYEES / SHIFT");
+check(!/ON PACE|HIGH RISK|AT RISK|RECOVERY|BUILDING/.test(v.kpis[1]) && /Active personnel/i.test(v.kpis[2]) && /Shift left/i.test(v.kpis[3]), "KPI tiles: compact, titled, no status badge on PROJECTED");
+check(v.kpiH <= 110, "KPI row is low (" + v.kpiH + " px)");
 check(v.scale >= 0.88, "worst case still fits at a large scale: " + v.scale);
 check(!v.overflowX, "no horizontal overflow");
+check(v.namesFit, "department names are not cut by the badge");
 await tv.screenshot({ path: "shots/v2-alerts.png" });
 
 // the normal link is v2 now, without sample loading data; ?classic=1 keeps the old layout
