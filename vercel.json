@@ -29,6 +29,11 @@
   ],
   "redirects": [
     {
+      "source": "/tv-preview",
+      "destination": "/?src=/api/feed-snapshot&tv=1&preview=1",
+      "permanent": false
+    },
+    {
       "source": "/tv",
       "destination": "/?src=/api/feed-snapshot&tv=1",
       "permanent": false

@@ -25,6 +25,17 @@ Con nombre de pantalla (para la tabla de tiempos):
   https://tarter-west-dashboard.vercel.app/tv/Soldadura
 (El link largo ?src=/api/feed-snapshot&tv=1 sigue funcionando igual.)
 
+DISEÑO NUEVO EN PRUEBA (aún no reemplaza al normal):
+  https://tarter-west-dashboard.vercel.app/tv-preview
+  - Cuadro de SEGURIDAD: días sin accidentes + tema del día, leídos de
+    "TV Board Info.xlsx" (misma carpeta). Los días se cuentan desde la fecha
+    de la fórmula =TODAY()-DATE(2025,6,31); si hay un accidente, cambiar esa
+    fecha. El tema sale de la pestaña "Toolbox Topics" (fecha | tema).
+  - Barra de LOADING: por ahora con datos de ejemplo ("SAMPLE DATA") hasta
+    que exista su Excel.
+  - Tarjetas iguales (ACTUAL / SCHEDULED), downtime/material siempre bajo los
+    números, sin "Current Attainment" arriba.
+
 Tamaño manual (solo si alguna TV lo necesita; normalmente NO hace falta):
   agregar &scale=0.8 (u otro número entre 0.25 y 3) al final del link.
 
@@ -78,8 +89,8 @@ PROTECCIONES AUTOMÁTICAS
   turno y la proyección, aunque el aparato de la TV tenga otra zona configurada.
   (&tz=America/Denver en el link la fuerza a mano si hiciera falta.)
 - Cada tarjeta muestra "EXCEL SAVED 10:42 AM" (cuándo se guardó por última vez
-  el Excel de ese departamento). Durante el turno, si pasa 1 hora sin guardar,
-  se pone en rojo: "NO EXCEL UPDATE FOR 1H 05M".
+  el Excel de ese departamento). Durante el turno, si pasan 2 horas sin
+  guardar, se pone en rojo: "NO EXCEL UPDATE FOR 2H 05M".
 - Sábado y domingo el dashboard muestra los datos del viernes, y arriba aparece
   un aviso amarillo "WEEKEND · SHOWING FRI, SEP 26". El mismo aviso sale si
   alguien elige otra fecha a mano en la PC fuente.

@@ -20,6 +20,8 @@ function comparable(data) {
   delete out._filesSavedAt;
   delete out.timeZone;
   if (Array.isArray(out.missing) && out.missing.length === 0) delete out.missing;
+  // Optional blocks (safety, loading) that aren't there yet: null is the same as absent.
+  for (const k of Object.keys(out)) if (out[k] === null) delete out[k];
   return out;
 }
 
