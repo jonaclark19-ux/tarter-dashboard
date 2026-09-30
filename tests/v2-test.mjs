@@ -81,7 +81,7 @@ check(/DOWNTIME LOG · 25 MINS/.test(v.txt[2]) && !/DOWNTIME 25 MINS ?DOWNTIME/.
 check(!/WORKING ON/.test(v.txt[3]), "tanks: downtime replaces WORKING ON");
 check(new Set(v.notesTop.filter((x) => x !== null)).size === 1, "notes start at the same height on every card: " + v.notesTop.join(","));
 check(/NO UPDATE 2H 10M/i.test(v.txt[0]) && !/NO UPDATE/i.test(v.txt.slice(1).join(" ")), "stale flag only after 2 hours");
-check(/sample data/i.test(v.loading) && /TRAILERS/.test(v.loading) && /TOTAL SHORTS/.test(v.loading) && /61PCS|61 PCS/.test(v.loading.replace(/\s+/g, "")) && /TOP 6 SHORT PRODUCTS/.test(v.loading), "preview fills the loading strip with labelled sample data");
+check(/sample data/i.test(v.loading) && /TRAILERS/.test(v.loading) && /\/ 20/.test(v.loading) && /70%/.test(v.loading) && /TOTAL SHORTS/.test(v.loading) && /61PCS|61 PCS/.test(v.loading.replace(/\s+/g, "")) && /TOP 6 SHORT PRODUCTS/.test(v.loading), "preview fills the loading strip with labelled sample data");
 check(!/ON PACE|HIGH RISK|AT RISK|RECOVERY|BUILDING/.test(v.kpis[1]) && !/Employees Present/i.test(v.kpis[2]) && !/Shift Time Left/i.test(v.kpis[3]), "KPI tiles: no status badge on PROJECTED, no titles on EMPLOYEES / SHIFT");
 check(v.scale >= 0.88, "worst case still fits at a large scale: " + v.scale);
 check(!v.overflowX, "no horizontal overflow");
