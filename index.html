@@ -57,6 +57,7 @@ html.v2 #top-kpis .metric-num span { font-size: 30px !important; }
 html.v2 #top-kpis p { font-size: 17px !important; line-height: 1.25 !important; }
 html.v2 #top-kpis p + p { font-size: 14px !important; }
 html.v2 #top-kpis .bg-gradient-to-br p { font-size: 15px !important; white-space: nowrap; }
+html.v2 #top-kpis p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.v2 #top-kpis span.rounded { font-size: 13px !important; padding: 3px 8px !important; }
 html.v2 #dept-grid > div { padding: 18px 20px !important; }
 html.v2 .card-head { margin-bottom: 10px; }
@@ -86,7 +87,9 @@ html.v2 .safety-text { font-size: 16px; font-weight: 800; letter-spacing: .03em;
 html.v2 .loading-strip { margin-top: 16px; display: flex; align-items: stretch; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; border-left: 8px solid #013449; }
 html.v2 .loading-trailers { padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 360px; flex-shrink: 0; border-right: 1px solid #e2e8f0; }
 html.v2 .loading-title { font-size: 22px; font-weight: 900; color: #013449; }
-html.v2 .loading-title span { font-size: 11px; font-weight: 800; letter-spacing: .1em; color: #5b6b80; margin-left: 8px; text-transform: uppercase; }
+html.v2 .loading-title { line-height: 1; }
+html.v2 .loading-sub { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: #5b6b80; text-transform: uppercase; }
+html.v2 .loading-shorts-total .sub { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: #7a271a; text-transform: uppercase; }
 html.v2 .loading-count { display: flex; align-items: baseline; gap: 8px; }
 html.v2 .loading-count .lbl { font-size: 12px; font-weight: 900; letter-spacing: .1em; color: #5b6b80; }
 html.v2 .loading-count .num { font-size: 30px; font-weight: 900; color: #013449; line-height: 1; }
@@ -98,9 +101,13 @@ html.v2 .loading-shorts { flex: 1; padding: 12px 22px; display: flex; align-item
 html.v2 .loading-shorts-total { flex-shrink: 0; text-align: center; }
 html.v2 .loading-shorts-total .lbl { font-size: 14px; font-weight: 900; letter-spacing: .12em; color: #b42318; }
 html.v2 .loading-shorts-total .num { font-size: 52px; font-weight: 900; color: #b42318; line-height: 1; }
-html.v2 .loading-shorts-list { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; min-width: 0; }
-html.v2 .short-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 10px; font-size: 17px; font-weight: 900; color: #7a271a; min-width: 0; }
+html.v2 .loading-shorts-top { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+html.v2 .loading-shorts-head { font-size: 12px; font-weight: 900; letter-spacing: .12em; color: #b42318; }
+html.v2 .loading-shorts-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; min-width: 0; }
+html.v2 .loading-shorts-total .num .unit { font-size: 20px; margin-left: 6px; letter-spacing: .06em; }
+html.v2 .short-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 12px; font-size: 19px; font-weight: 900; color: #7a271a; min-width: 0; }
 html.v2 .short-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.v2 .short-none { grid-column: 1 / -1; font-size: 18px; font-weight: 900; color: #15803d; letter-spacing: .06em; text-transform: uppercase; }
 html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; padding: 1px 8px; font-size: 15px; flex-shrink: 0; }
 </style>
 </head>
@@ -658,7 +665,12 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const row = document.getElementById("top-kpis");
     if (LAYOUT_V2) {
       const safety = renderSafetyTile(state && state.result ? state.result.safety : null);
-      row.innerHTML = safety + html.replace(/<!-- KPI 3 -->[\s\S]*?(?=<!-- KPI 4 -->)/, "");
+      row.innerHTML = safety + html
+        .replace(/<!-- KPI 3 -->[\s\S]*?(?=<!-- KPI 4 -->)/, "")
+        .replace(/<span class="px-1\.5 py-0\.5 text-\[8px\][^>]*>[\s\S]*?<\/span>/, "")
+        .replace(/<h3[^>]*>\s*Employees Present\s*<\/h3>/, "")
+        .replace(/<h3[^>]*>\s*Shift Time Left\s*<\/h3>/, "")
+        .replace(/>Projected (?=[\d,]+ units)/, ">");
       row.style.gridTemplateColumns = safety ? "1.35fr repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))";
     } else {
       row.innerHTML = html;
@@ -976,25 +988,36 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   }
   // Loading strip: real numbers once the loading workbook exists; until then the
   // preview shows clearly-labelled sample numbers so the layout can be judged.
-  var LOADING_SAMPLE = { weekLabel: "Week of Sep 28", trailersDone: 14, trailersGoal: 20, shorts: [["WFGGSC4", 12], ["EWG4T", 6], ["6EG16E", 4], ["WFGGSC14", 3], ["ECG16T", 2], ["LAWOB8", 2], ["HSFR12", 1], ["2W66", 1]], sample: true };
+  var LOADING_SAMPLE = { weekStart: "2026-09-28", trailersWeek: 14, trailersToday: 3, piecesWeek: 2681, shortsWeek: 61, fulfillment: 0.977, shorts: [["WFGGSC4", 12], ["EWG4T", 6], ["6EG16E", 4], ["WFGGSC14", 3], ["ECG16T", 2], ["LAWOB8", 2], ["HSFR12", 1], ["2W66", 1]], sample: true };
+  // Weekly trailer goal for the progress bar. The loading workbook has no goal column;
+  // set a number here (or &loadgoal=20 in a link) to show "14 / 20" and the bar.
+  var LOADING_WEEKLY_GOAL = (function () { const m = /[?&]loadgoal=(\d+)/.exec(location.search); return m ? Number(m[1]) : null; })();
   function renderLoadingBar() {
     const el = document.getElementById("loading-bar");
     if (!el) return;
     if (!LAYOUT_V2) { el.style.display = "none"; return; }
-    const d = (state && state.result && state.result.loading) || LOADING_SAMPLE;
-    const pct = d.trailersGoal ? Math.min(100, Math.round(d.trailersDone / d.trailersGoal * 100)) : 0;
+    const d = (state && state.result && state.result.loading) || (LAYOUT_PREVIEW ? LOADING_SAMPLE : null);
+    if (!d) { el.style.display = "none"; el.innerHTML = ""; return; }
+    const goal = LOADING_WEEKLY_GOAL;
+    const pct = goal ? Math.min(100, Math.round(d.trailersWeek / goal * 100)) : null;
+    const week = new Date(d.weekStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const shorts = Array.isArray(d.shorts) ? d.shorts : [];
+    const fulfil = typeof d.fulfillment === "number" ? Math.round(d.fulfillment * 1000) / 10 : null;
     el.style.display = "block";
     el.innerHTML = `
       <div class="loading-strip">
         <div class="loading-trailers">
-          <div class="loading-title">LOADING <span>${escapeHtml(d.weekLabel || "")}${d.sample ? " \u00B7 SAMPLE DATA" : ""}</span></div>
-          <div class="loading-count"><span class="lbl">TRAILERS</span><span class="num metric-num">${formatNumberUI(d.trailersDone)}</span><span class="goal">/ ${formatNumberUI(d.trailersGoal)}</span><span class="pct">${pct}%</span></div>
-          <div class="loading-track"><div style="width:${pct}%"></div></div>
+          <div class="loading-title">LOADING</div>
+          <div class="loading-sub">Week of ${escapeHtml(week)}${d.sample ? " \u00B7 sample data" : ""}</div>
+          <div class="loading-count"><span class="lbl">TRAILERS</span><span class="num metric-num">${formatNumberUI(d.trailersWeek)}</span>${goal ? `<span class="goal">/ ${formatNumberUI(goal)}</span><span class="pct">${pct}%</span>` : `<span class="goal">today ${formatNumberUI(d.trailersToday || 0)}</span>`}</div>
+          ${goal ? `<div class="loading-track"><div style="width:${pct}%"></div></div>` : ""}
         </div>
         <div class="loading-shorts">
-          <div class="loading-shorts-total"><div class="lbl">SHORT PRODUCTS</div><div class="num metric-num">${shorts.length}</div></div>
-          <div class="loading-shorts-list">${shorts.map(([name, qty]) => `<div class="short-item"><span>${escapeHtml(String(name))}</span><b>${escapeHtml(String(qty))}</b></div>`).join("")}</div>
+          <div class="loading-shorts-total"><div class="lbl">TOTAL SHORTS</div><div class="num metric-num">${formatNumberUI(d.shortsWeek)}<span class="unit">PCS</span></div><div class="sub">this week${fulfil !== null ? " \u00B7 " + fulfil + "% filled" : ""}</div></div>
+          <div class="loading-shorts-top">
+          <div class="loading-shorts-head">TOP ${Math.min(6, shorts.length) || 6} SHORT PRODUCTS \u00B7 PCS</div>
+          <div class="loading-shorts-list">${shorts.length ? shorts.slice(0, 6).map(([name, qty]) => `<div class="short-item"><span>${escapeHtml(String(name))}</span><b>${formatNumberUI(qty)}</b></div>`).join("") : `<div class="short-none">No short products this week</div>`}</div>
+          </div>
         </div>
       </div>`;
   }
@@ -2037,8 +2060,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     return { selectedDate: selectedDateISO, selectedWeekStart: weekMondayISO(selectedDateISO), departments, missing, warnings, fabWorkers, sources: sourcesUsed, parsed };
   }
   // ---- Board layout v2 (safety tile, loading bar, uniform cards) ----
-  // Opt-in with ?preview=1 (or /tv-preview) until it replaces the current layout.
-  var LAYOUT_V2 = /[?&]preview=1(&|$)/.test(location.search);
+  // Default layout. ?classic=1 brings back the previous one; ?preview=1 also fills the
+  // loading strip with labelled sample numbers when there is no loading data.
+  var LAYOUT_V2 = !/[?&]classic=1(&|$)/.test(location.search);
+  var LAYOUT_PREVIEW = /[?&]preview=1(&|$)/.test(location.search);
   if (LAYOUT_V2) document.documentElement.classList.add("v2");
 
   // ---- TV Board Info.xlsx: safety days + daily toolbox topic ----
@@ -2093,6 +2118,101 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (!hit) hit = board.topics.find((t) => t.iso.slice(5) === dateISO.slice(5));
     if (!hit && !board.sinceISO && board.days === null) return null;
     return { topic: hit ? hit.topic : null, sinceISO: board.sinceISO, days: board.days, savedAt: isoOrNull(board.savedAt) };
+  }
+  // ---- Loading: "<letter> Load Sign Off <Month> <year>.xlsx", one tab per day ("9-28-26") ----
+  var LOADING_FILE_RE = /load\s*sign\s*off/i;
+  var MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  /** Which sign-off workbook covers a given day: the name carries the month and year. */
+  function loadingFileFor(cands, iso) {
+    const month = MONTH_NAMES[Number(iso.slice(5, 7)) - 1];
+    const year = iso.slice(0, 4);
+    return cands.find((c) => c.name.toLowerCase().indexOf(month) !== -1 && c.name.indexOf(year) !== -1) || null;
+  }
+  /** Short products written in COMMENTS, e.g. "SO1347500 EWBL66-2,GUT22-1." -> EWBL66 x2, GUT22 x1. */
+  function parseShortProducts(text) {
+    const out = [];
+    const clean = String(text || "").toUpperCase().replace(/SO\s*\d{5,}/g, " ");
+    const re = /([A-Z0-9]*[A-Z][A-Z0-9]*)\s*-\s*(\d{1,4})(?![0-9])/g;
+    let m;
+    while ((m = re.exec(clean))) out.push([m[1], Number(m[2])]);
+    return out;
+  }
+  function parseLoadSignOff(buffer) {
+    const wb = XLSX.read(buffer, { type: "array" });
+    const days = [];
+    const text = (c) => (c && c.v !== void 0 && c.v !== null ? String(c.w !== void 0 ? c.w : c.v).trim() : "");
+    const num = (c) => { const n = parseFloat(text(c).replace(/,/g, "")); return Number.isFinite(n) ? n : null; };
+    for (const name of wb.SheetNames) {
+      const m = /^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/.exec(name.trim());
+      if (!m) continue;
+      const year = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+      const d = new Date(Date.UTC(year, Number(m[1]) - 1, Number(m[2])));
+      if (d.getUTCMonth() !== Number(m[1]) - 1) continue; // "9-31-26" and other impossible dates
+      const iso = d.toISOString().slice(0, 10);
+      const sh = wb.Sheets[name];
+      if (!sh || !sh["!ref"]) continue;
+      const range = XLSX.utils.decode_range(sh["!ref"]);
+      const at = (r, c) => sh[XLSX.utils.encode_cell({ r, c })];
+      // Summary block: a label, its value one to three rows below in the same column.
+      const totals = {};
+      let endRow = range.e.r;
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const t = text(at(r, c)).toLowerCase();
+          if (!t) continue;
+          if (t === "total tarter") endRow = Math.min(endRow, r - 1);
+          const key = t === "total loads" ? "loads" : t === "total loaded" ? "pieces" : t === "total short" ? "shorts" : null;
+          if (!key) continue;
+          for (let k = 1; k <= 3; k++) { const v = num(at(r + k, c)); if (v !== null) { totals[key] = v; break; } }
+        }
+      }
+      // Load rows: anchored on the "% Full" cell - pieces two columns left, shorts one
+      // left, comments one right - because some tabs are shifted a column.
+      let loads = 0, pieces = 0, shorts = 0;
+      const products = [];
+      for (let r = range.s.r; r <= endRow; r++) {
+        for (let c = range.s.c + 2; c <= range.e.c; c++) {
+          if (!/^\d{1,3}(\.\d+)?%$/.test(text(at(r, c)))) continue;
+          const p = num(at(r, c - 2));
+          if (!p) break;
+          const sh2 = num(at(r, c - 1)) || 0;
+          loads += 1; pieces += p; shorts += sh2;
+          if (sh2 > 0) for (const item of parseShortProducts(text(at(r, c + 1)))) products.push(item);
+          break;
+        }
+      }
+      days.push({
+        iso,
+        loads: totals.loads !== undefined ? totals.loads : loads,
+        pieces: totals.pieces !== undefined ? totals.pieces : pieces,
+        shorts: totals.shorts !== undefined ? totals.shorts : shorts,
+        products
+      });
+    }
+    return days;
+  }
+  /** Monday through the selected day: trailers, pieces, shorts and the short products. */
+  function loadingFor(books, dateISO) {
+    const all = [];
+    for (const b of books || []) if (b && Array.isArray(b.days)) all.push(...b.days);
+    if (!all.length) return null;
+    const monday = weekMondayISO(dateISO);
+    const friday = addDaysISO(monday, 4);
+    const days = all.filter((d) => d.iso >= monday && d.iso <= dateISO && d.iso <= friday).sort((a, b) => (a.iso < b.iso ? -1 : 1));
+    const sum = (k) => days.reduce((t, d) => t + (d[k] || 0), 0);
+    const today = days.find((d) => d.iso === dateISO);
+    const byProduct = new Map();
+    for (const d of days) for (const [name, qty] of d.products || []) byProduct.set(name, (byProduct.get(name) || 0) + qty);
+    const piecesWeek = sum("pieces"), shortsWeek = sum("shorts");
+    return {
+      weekStart: monday,
+      trailersWeek: sum("loads"),
+      trailersToday: today ? today.loads : 0,
+      piecesWeek,
+      shortsWeek,
+      fulfillment: piecesWeek > 0 ? (piecesWeek - shortsWeek) / piecesWeek : null,
+      shorts: Array.from(byProduct.entries()).sort((a, b) => b[1] - a[1]).slice(0, 24)
+    };
   }
   function safetyDays(safety) {
     if (!safety) return null;
@@ -2862,6 +2982,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       sourceLabel = result.sources.map((s) => s.label + " " + s.sheetName).join(" · ");
     }
     result.safety = safetyFor(sync.board, targetDate);
+    result.loading = loadingFor(sync.loadingBooks, targetDate);
     state.result = result;
     state.statusTone = "success";
     sync.fileLabel = sourceLabel || "";
@@ -3145,8 +3266,30 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     // workbook next to the department files. Optional: no file, no safety tile.
     const board = scan.candidates.find((c) => BOARD_INFO_RE.test(c.name)) || null;
     const boardSig = board ? board.name + ":" + board.modified + ":" + board.file.size : "";
-    const signature = chosen.map((c) => c.cand.name + ":" + c.cand.modified + ":" + c.cand.file.size).join("~") + "~board:" + boardSig;
+    // Loading: the "Load Sign Off <Month> <year>" workbook(s) covering Monday..today.
+    const loadDay = syncTargetDateISO();
+    const loadCands = scan.candidates.filter((c) => LOADING_FILE_RE.test(c.name));
+    const loadFiles = [];
+    for (const iso of [weekMondayISO(loadDay), loadDay]) {
+      const f = loadingFileFor(loadCands, iso);
+      if (f && loadFiles.indexOf(f) === -1) loadFiles.push(f);
+    }
+    const loadSig = loadFiles.map((f) => f.name + ":" + f.modified + ":" + f.file.size).join("|");
+    const signature = chosen.map((c) => c.cand.name + ":" + c.cand.modified + ":" + c.cand.file.size).join("~") + "~board:" + boardSig + "~load:" + loadSig;
     if (!force && signature === sync.signature) return false;
+    const books = [];
+    for (const f of loadFiles) {
+      const sig = f.name + ":" + f.modified + ":" + f.file.size;
+      const cached = (sync.loadingBooks || []).find((b) => b.sig === sig);
+      if (cached) { books.push(cached); continue; }
+      try {
+        await ensureXlsx();
+        books.push({ sig, fileName: f.name, savedAt: f.modified, days: parseLoadSignOff(await f.file.arrayBuffer()) });
+      } catch (err) {
+        context.push("Could not read " + f.name + ": " + (err && err.message ? err.message : String(err)));
+      }
+    }
+    sync.loadingBooks = books;
     if (!board) sync.board = null;
     else if (!sync.board || sync.board.sig !== boardSig) {
       try {

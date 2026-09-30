@@ -81,17 +81,47 @@ check(/DOWNTIME LOG · 25 MINS/.test(v.txt[2]) && !/DOWNTIME 25 MINS ?DOWNTIME/.
 check(!/WORKING ON/.test(v.txt[3]), "tanks: downtime replaces WORKING ON");
 check(new Set(v.notesTop.filter((x) => x !== null)).size === 1, "notes start at the same height on every card: " + v.notesTop.join(","));
 check(/NO UPDATE 2H 10M/i.test(v.txt[0]) && !/NO UPDATE/i.test(v.txt.slice(1).join(" ")), "stale flag only after 2 hours");
-check(/SAMPLE DATA/.test(v.loading) && /TRAILERS/.test(v.loading) && /SHORT PRODUCTS/.test(v.loading), "loading strip shows (sample until its Excel exists)");
+check(/sample data/i.test(v.loading) && /TRAILERS/.test(v.loading) && /TOTAL SHORTS/.test(v.loading) && /61PCS|61 PCS/.test(v.loading.replace(/\s+/g, "")) && /TOP 6 SHORT PRODUCTS/.test(v.loading), "preview fills the loading strip with labelled sample data");
+check(!/ON PACE|HIGH RISK|AT RISK|RECOVERY|BUILDING/.test(v.kpis[1]) && !/Employees Present/i.test(v.kpis[2]) && !/Shift Time Left/i.test(v.kpis[3]), "KPI tiles: no status badge on PROJECTED, no titles on EMPLOYEES / SHIFT");
 check(v.scale >= 0.88, "worst case still fits at a large scale: " + v.scale);
 check(!v.overflowX, "no horizontal overflow");
 await tv.screenshot({ path: "shots/v2-alerts.png" });
 
-// normal (non-preview) link unchanged
+// the normal link is v2 now, without sample loading data; ?classic=1 keeps the old layout
+const off = await ctx.newPage();
+await off.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await off.waitForTimeout(2500);
+const o1 = await off.evaluate(() => ({ safety: !!document.querySelector(".safety-tile"), loading: getComputedStyle(document.getElementById("loading-bar")).display }));
+check(o1.safety && o1.loading === "none", "official link: new layout, loading strip hidden when there is no loading data");
 const old = await ctx.newPage();
-await old.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await old.goto(base + "/?src=/api/feed-snapshot&tv=1&classic=1");
 await old.waitForTimeout(2500);
 const o = await old.evaluate(() => ({ safety: !!document.querySelector(".safety-tile"), loading: getComputedStyle(document.getElementById("loading-bar")).display, cur: /Current Attainment/i.test(document.getElementById("top-kpis").textContent) }));
-check(!o.safety && o.loading === "none" && o.cur, "the normal TV link keeps the current layout");
+check(!o.safety && o.loading === "none" && o.cur, "?classic=1 keeps the previous layout");
+
+// --- Load Sign Off workbook (synthetic, same layout as the real monthly file)
+const ld = await src.evaluate(() => {
+  const t = window.__t;
+  const wb = XLSX.utils.book_new();
+  const mk = (rows, summary) => {
+    const ws = XLSX.utils.aoa_to_sheet([[]]);
+    const put = (a, v) => { ws[a] = typeof v === "number" ? { t: "n", v } : { t: "s", v }; };
+    rows.forEach(([r, pieces, short, pct, comment]) => { put("C" + r, "T"); put("G" + r, pieces); if (short) put("H" + r, short); put("I" + r, pct); if (comment) put("J" + r, comment); });
+    put("B35", "Total Tarter"); put("G36", "Total Loaded"); put("H36", "Total Short"); put("D39", "Total Loads");
+    put("G38", summary.pieces); put("H38", summary.shorts); put("D41", summary.loads);
+    ws["!ref"] = "A1:R45";
+    return ws;
+  };
+  XLSX.utils.book_append_sheet(wb, mk([[12, 84, 0, "100%", "Redist. RFM"], [16, 176, 0, "100%", "1PGB5-128  RFM-32"], [18, 69, 7, "90%", "SO1347500 EWBL66-2,GUT22-1. SO1347502 GUT22-2. SO1347903 RRB10-2"]], { pieces: 329, shorts: 7, loads: 3 }), "9-28-26");
+  XLSX.utils.book_append_sheet(wb, mk([[7, 343, 24, "93%", "6egr6cl-6,wgsc10cl-4, 6egr10cl-10,6egr8cl-4"]], { pieces: 343, shorts: 24, loads: 1 }), "9-29-26");
+  XLSX.utils.book_append_sheet(wb, mk([], { pieces: 0, shorts: 0, loads: 0 }), "9-31-26");
+  const days = t.parseLoadSignOff(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
+  return { days: days.map((d) => d.iso), week: t.loadingFor([{ days }], "2026-09-30") };
+});
+check(ld.days.join(",") === "2026-09-28,2026-09-29", "sign-off tabs read by date, impossible 9-31 skipped: " + ld.days.join(","));
+check(ld.week.trailersWeek === 4 && ld.week.piecesWeek === 672 && ld.week.shortsWeek === 31, "week totals from the tab summaries");
+const top = Object.fromEntries(ld.week.shorts);
+check(top.GUT22 === 3 && top.EWBL66 === 2 && top["6EGR10CL"] === 10 && !top.RFM && !top["1PGB5"], "short products only from loads with shorts: " + ld.week.shorts.map((x) => x.join("x")).join(" "));
 
 check(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join(" | ") : ""));
 await browser.close(); server.close();
