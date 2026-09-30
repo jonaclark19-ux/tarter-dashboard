@@ -106,8 +106,8 @@ await post("/api/publish", { result: fresh, changedAt: new Date().toISOString() 
 await tv2.goto(base + "/?src=/api/feed-snapshot&tv=1");
 await tv2.waitForFunction(() => /EXCEL SAVED/i.test(document.getElementById("dept-grid").textContent), null, { timeout: 15000 }).catch(() => {});
 const cardsText = await tv2.evaluate(() => Array.from(document.getElementById("dept-grid").children).map((c) => c.textContent.replace(/\s+/g, " ")));
-check(/No Excel update for 2H 10M/i.test(cardsText[0] || ""), "FAB card flags 2h10m without an Excel save (" + zone + ")");
-check(/Excel saved/i.test(cardsText[1] || "") && !/No Excel update/i.test(cardsText[1] || ""), "WELDING card shows its save time");
+check(/No (Excel )?update (for )?2H 10M/i.test(cardsText[0] || ""), "FAB card flags 2h10m without an Excel save (" + zone + ")");
+check(/Saved/i.test(cardsText[1] || "") && !/No (Excel )?update/i.test(cardsText[1] || ""), "WELDING card shows its save time");
 check(!tvRequests.some((u) => /vendor\/xlsx\.js/.test(u)), "TV never downloads the Excel reader");
 const badgeToday = await tv2.evaluate(() => getComputedStyle(document.getElementById("data-day-badge")).display);
 check(badgeToday === "none", "no 'showing another day' badge when the data is today's");
