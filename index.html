@@ -757,6 +757,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       if (diagnosis.level === 3) topBorderClass = "border-t-orange-500";
       if (diagnosis.level === 4) topBorderClass = "border-t-red-600 " + diagnosis.animate;
       if (diagnosis.level === 5) topBorderClass = "border-t-slate-800";
+      if (data.placeholder) topBorderClass = "border-t-slate-300";
       let heroHtml = "";
       let statsHtml = `<div class="grid grid-cols-2 gap-3 mb-5">`;
       let badgeHtml = "";
@@ -771,12 +772,13 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       if (hasUplh) {
         const uplhNum = engine.uplhCurrent;
         const goalNum = engine.uplhGoal;
-        const uplhPct = Math.min(100, uplhNum / goalNum * 100);
+        const uplhPct = goalNum > 0 ? Math.min(100, uplhNum / goalNum * 100) : 0;
         const isUplhGood = uplhNum >= goalNum;
         const isUplhOk = uplhPct >= 80 && !isUplhGood;
-        const blockBg = isUplhGood ? "bg-slate-50 border-slate-200" : isUplhOk ? "bg-amber-50 border-amber-200" : "bg-orange-50 border-orange-200";
-        const textColor = isUplhGood ? "text-tarter-navy" : isUplhOk ? "text-amber-700" : "text-orange-700";
-        const labelColor = isUplhGood ? "text-slate-500" : isUplhOk ? "text-amber-700" : "text-orange-700";
+        const neutral = !!data.placeholder;
+        const blockBg = neutral || isUplhGood ? "bg-slate-50 border-slate-200" : isUplhOk ? "bg-amber-50 border-amber-200" : "bg-orange-50 border-orange-200";
+        const textColor = neutral ? "text-slate-400" : isUplhGood ? "text-tarter-navy" : isUplhOk ? "text-amber-700" : "text-orange-700";
+        const labelColor = neutral || isUplhGood ? "text-slate-500" : isUplhOk ? "text-amber-700" : "text-orange-700";
         const barBg = isUplhGood ? "bg-green-500" : isUplhOk ? "bg-amber-400" : "bg-orange-500";
         heroHtml = `
         <div class="${blockBg} border rounded-xl p-4 mb-5 relative overflow-hidden shrink-0">
@@ -946,10 +948,32 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     </div>`;
     }
   }
+  // Departments that keep their normal card, all zeros, when their Excel has no data
+  // for the day (missing tab, error cells) instead of the NO DATA placeholder. Display
+  // only: the zeros never count toward the plant KPIs.
+  var ZERO_CARD_DEPTS = ["tanks"];
+  function zeroDept(m) {
+    return {
+      id: m.id,
+      name: m.name || String(m.id).toUpperCase(),
+      status: "on_target",
+      attainment: 0,
+      attainmentLabel: "DAILY ATTAINMENT",
+      headline: { icon: "\u{1F464}", active: 0, total: EXPECTED_HEADCOUNT[m.id] || 0, label: "PRESENT / EXPECTED" },
+      stats: [
+        { label: "PRODUCTION", value: 0, tone: "default" },
+        { label: "SCHEDULED", value: 0, tone: "default" },
+        { label: "UPLH", value: 0, tone: "default" },
+        { label: "GOAL", value: 0, tone: "default" }
+      ],
+      notes: [{ type: "info", label: "NO DATA YET", content: m.reason || "Check the Excel sheet", customColor: "#64748B" }],
+      placeholder: true
+    };
+  }
   function renderDeptGrid(departments, missing) {
     const cards = departments.map((d) => ({ id: d.id, html: renderDeptCard(d) }));
     for (const m of missing || []) {
-      if (m && m.id && !cards.some((c) => c.id === m.id)) cards.push({ id: m.id, html: renderMissingCard(m) });
+      if (m && m.id && !cards.some((c) => c.id === m.id)) cards.push({ id: m.id, html: ZERO_CARD_DEPTS.indexOf(m.id) !== -1 ? renderDeptCard(zeroDept(m)) : renderMissingCard(m) });
     }
     const order = DEPT_SOURCES.map((d) => d.id);
     const rank = (id) => { const i = order.indexOf(id); return i === -1 ? order.length : i; };
@@ -1001,7 +1025,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     return `
     <div class="safety-tile">
       <div class="safety-days metric-num">${days === null ? "\u2013" : days.toLocaleString("en-US")}</div>
-      <div class="safety-label">Days without<br>accidents</div>
+      <div class="safety-label">Days without<br>incidents</div>
       ${safety && safety.topic ? `<div class="safety-topic"><span class="safety-tag">TODAY'S TOPIC</span><span class="safety-text">${escapeHtml(safety.topic)}</span></div>` : `<div class="safety-icon" aria-hidden="true">\u{1F9BA}</div>`}
     </div>`;
   }
@@ -1010,7 +1034,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   var LOADING_SAMPLE = { weekStart: "2026-09-28", trailersWeek: 14, trailersToday: 3, piecesWeek: 2681, shortsWeek: 61, fulfillment: 0.977, shorts: [["WFGGSC4", 12], ["EWG4T", 6], ["6EG16E", 4], ["WFGGSC14", 3], ["ECG16T", 2], ["LAWOB8", 2], ["HSFR12", 1], ["2W66", 1]], sample: true };
   // Weekly trailer goal (the loading workbook has no goal column). &loadgoal=N in a
   // link overrides it.
-  var LOADING_WEEKLY_GOAL = (function () { const m = /[?&]loadgoal=(\d+)/.exec(location.search); return m ? Number(m[1]) : 20; })();
+  var LOADING_WEEKLY_GOAL = (function () { const m = /[?&]loadgoal=(\d+)/.exec(location.search); return m ? Number(m[1]) : 16; })();
   function renderLoadingBar() {
     const el = document.getElementById("loading-bar");
     if (!el) return;

@@ -65,7 +65,7 @@ const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, 
 const tv = await ctx.newPage();
 tv.on("pageerror", (e) => errors.push("tv: " + e.message));
 await tv.goto(base + "/?src=/api/feed-snapshot&tv=1&screen=Test");
-await tv.waitForFunction(() => document.querySelector("[data-missing-dept='tanks']"), null, { timeout: 15000 }).catch(() => {});
+await tv.waitForFunction(() => document.getElementById("dept-grid").children.length === 4, null, { timeout: 15000 }).catch(() => {});
 await tv.waitForTimeout(1500); // the header clock ticks once a second
 const view = await tv.evaluate(() => {
   const cards = Array.from(document.getElementById("dept-grid").children);
@@ -78,7 +78,7 @@ const view = await tv.evaluate(() => {
   };
 });
 const tokyoClock = new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Tokyo", hour12: true, hour: "2-digit", minute: "2-digit" });
-check(view.n === 4 && /TANKS/.test(view.last) && /NO DATA/.test(view.last) && /9\.28\.2026/.test(view.last), "TV shows a TANKS 'NO DATA' card: " + view.last);
+check(view.n === 4 && /TANKS/.test(view.last) && /NO DATA YET/.test(view.last) && /9\.28\.2026/.test(view.last) && /SCHEDULED/.test(view.last), "TV shows TANKS as a normal zero card with the reason: " + view.last);
 check(view.oneRow, "four cards stay in one row");
 check(view.clock.slice(0, 5) === tokyoClock.slice(0, 5), "TV clock uses the plant zone (" + view.clock + " vs Tokyo " + tokyoClock + "), not the device's New York zone");
 await tv.screenshot({ path: "shots/missing-card.png" });

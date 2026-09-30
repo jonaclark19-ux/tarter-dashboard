@@ -26,16 +26,16 @@ Con nombre de pantalla (para la tabla de tiempos):
 (El link largo ?src=/api/feed-snapshot&tv=1 sigue funcionando igual.)
 
 DISEÑO (oficial desde 30-sep-2026)
-  - Cuadro de SEGURIDAD: días sin accidentes + tema del día, leídos de
+  - Cuadro de SEGURIDAD: días sin incidentes + tema del día, leídos de
     "TV Board Info.xlsx" (misma carpeta). Los días se cuentan desde la fecha
-    de la fórmula =TODAY()-DATE(2025,6,31); si hay un accidente, cambiar esa
+    de la fórmula =TODAY()-DATE(2025,6,31); si hay un incidente, cambiar esa
     fecha. El tema sale de la pestaña "Toolbox Topics" (fecha | tema).
   - Barra de LOADING: se lee de "Loading/<letra> Load Sign Off <Mes> <año>.xlsx"
     (una pestaña por día, ej. "9-28-26"). Trailers = "Total Loads" de cada día
     (lunes a hoy). Total shorts en piezas = "Total Short". Los productos cortos
     salen de COMMENTS de los trailers que tienen "Short per Load" (formato
     PRODUCTO-CANTIDAD, ej. "SO1347500 EWBL66-2,GUT22-1"); se muestran los 6
-    con más piezas. Meta semanal de trailers: 20 (se puede cambiar con
+    con más piezas. Meta semanal de trailers: 16 (se puede cambiar con
     &loadgoal=N en el link).
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
@@ -82,7 +82,8 @@ PROTECCIONES AUTOMÁTICAS
 ------------------------
 - Si falta la pestaña de un departamento (ej. la semana nueva de Tanks), su
   tarjeta aparece igual con "NO DATA" y el motivo (ej. "Tab 9.28.2026 missing
-  in the Excel") en vez de desaparecer.
+  in the Excel") en vez de desaparecer. TANKS por ahora muestra su tarjeta
+  normal en ceros con "NO DATA YET" y el motivo (no cuenta para los KPIs).
 - Si el WiFi se cae a mitad de una consulta, se corta a los 20 s y se reintenta
   en el siguiente chequeo (antes la TV o la PC fuente podían quedarse pegadas).
 - La PC fuente, con la carpeta conectada y la pestaña visible, pide al navegador
