@@ -88,6 +88,11 @@ html.v2 #dept-grid .stat-val { font-size: 44px !important; line-height: 1.05 !im
 html.v2 #dept-grid .stat-wide .stat-val { font-size: 22px !important; }
 html.v2 #dept-grid .note-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 html.v2 #dept-grid .card-notes > div { padding: 10px 14px !important; }
+.dept-down-overlay { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; background: rgba(15, 23, 42, .96); color: #fff; border-radius: 1rem; }
+.dept-down-icon { width: 96px; height: 96px; border-radius: 9999px; background: #64748b; display: flex; align-items: center; justify-content: center; font-size: 48px; line-height: 1; }
+.dept-down-title { font-size: 44px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+.dept-down-sub { font-size: 20px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #cbd5e1; }
+.dept-down-pill { margin-top: 6px; background: #fbbf24; color: #1b1f24; font-size: 16px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; padding: 6px 14px; border-radius: 9999px; }
 html.v2 .safety-tile { height: 100%; display: flex; align-items: center; gap: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.12); background: #15803d; color: #fff; padding: 12px 18px; min-width: 0; }
 html.v2 .safety-days { font-size: 56px !important; font-weight: 900; line-height: 1 !important; color: #fff; flex-shrink: 0; }
 html.v2 .safety-label { font-size: 15px; font-weight: 900; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; flex-shrink: 0; }
@@ -507,7 +512,14 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       complete: false
     };
   }
+  // A department is "down" when its sheet says 0 people present (typed as 0, not left
+  // blank). Its card gets a NOT RUNNING cover and it stays out of the plant KPIs and
+  // alerts, so a planned shutdown doesn't read as a shortage.
+  function isDeptDown(d) {
+    return !!(d && !d.placeholder && d.headline && d.headline.down === true);
+  }
   function calculateDashboardKpis(departments) {
+    departments = departments.filter((d) => !isDeptDown(d));
     const personnelDepts = departments.filter((d) => d.headline && d.headline.countsAsPersonnel);
     const totalPresent = personnelDepts.reduce((sum, d) => sum + (d.headline.active || 0), 0);
     const totalExpected = personnelDepts.reduce((sum, d) => sum + (d.headline.total || 0), 0);
@@ -903,6 +915,15 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
           <p class="text-sm font-bold text-slate-600">${escapeHtml(diagnosis.message)}</p>
       </div>`;
       }
+      if (isDeptDown(data)) {
+        overlayHtml = `
+      <div class="dept-down-overlay" data-dept-down="${escapeHtml(data.id)}">
+          <div class="dept-down-icon" aria-hidden="true">\u23F8</div>
+          <div class="dept-down-title">Not running</div>
+          <div class="dept-down-sub">${escapeHtml(data.name)} is down today</div>
+          <div class="dept-down-pill">0 personnel present</div>
+      </div>`;
+      }
       const personnelIsShort = data.headline.countsAsPersonnel && data.headline.active !== null && data.headline.active < data.headline.total;
       const personnelColor = personnelIsShort ? "text-red-600" : "text-tarter-navy";
       return `
@@ -1077,6 +1098,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       </div>`;
   }
   function renderFooterAlert(departments) {
+    departments = departments.filter((d) => !isDeptDown(d));
     const now = plantNow();
     const shiftStart = new Date(now);
     shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
@@ -1448,11 +1470,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true },
+      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };
-    return { dept, workers: { active: present !== null ? present : 0, total: expected } };
+    return { dept, workers: { active: present !== null ? present : 0, total: expected, down: present === 0 } };
   }
   function buildFabLegacy(sheet, sheetName, selectedDateISO, warnings) {
     const weekStart = weekMondayISO(selectedDateISO);
@@ -1510,7 +1532,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       { label: "DONE JOBS", value: jobsDone + "/" + totalActive, tone: "default" },
       { label: "WORKING", value: workingJobs, tone: "yellow" }
     ];
-    const headline = workers ? { icon: "\u{1F464}", active: workers.active, total: workers.total, label: "PRESENT / EXPECTED", countsAsPersonnel: true } : { icon: "\u{1F464}", active: 0, total: EXPECTED_HEADCOUNT.fab, label: "PRESENT / EXPECTED (N/A)", countsAsPersonnel: true };
+    const headline = workers ? { icon: "\u{1F464}", active: workers.active, total: workers.total, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: workers.down === true || (workers.down === void 0 && workers.active === 0) } : { icon: "\u{1F464}", active: 0, total: EXPECTED_HEADCOUNT.fab, label: "PRESENT / EXPECTED (N/A)", countsAsPersonnel: true };
     const dept = {
       id: "fab",
       name: "FAB",
@@ -1608,7 +1630,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true },
+      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };
@@ -1793,7 +1815,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true },
+      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0,
       currentColor
@@ -1897,7 +1919,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment: weekPct !== null ? weekPct : void 0,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true },
+      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };

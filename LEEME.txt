@@ -80,6 +80,11 @@ hora exacta al escribir y compárala con "Excel guardado" en la tabla.
 
 PROTECCIONES AUTOMÁTICAS
 ------------------------
+- Departamento sin funcionar: si en su Excel el personal presente es 0
+  (escrito como 0, no vacío), la tarjeta se cubre con "NOT RUNNING · 0
+  PERSONNEL PRESENT" y ese departamento no cuenta en Projected end, en
+  Active personnel ni en las alertas. Al poner otra vez el número real,
+  la tarjeta vuelve sola.
 - Si falta la pestaña de un departamento (ej. la semana nueva de Tanks), su
   tarjeta aparece igual con "NO DATA" y el motivo (ej. "Tab 9.28.2026 missing
   in the Excel") en vez de desaparecer. TANKS por ahora muestra su tarjeta
