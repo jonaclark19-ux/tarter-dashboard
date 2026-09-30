@@ -99,14 +99,14 @@ const fresh = JSON.parse(JSON.stringify(fixture));
 fresh.selectedDate = zoneDate;
 fresh.timeZone = zone;
 fresh.sources = [
-  { id: "fab", label: "FAB", fileName: "f.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 90 * 6e4).toISOString() },
+  { id: "fab", label: "FAB", fileName: "f.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 130 * 6e4).toISOString() },
   { id: "welding", label: "WELDING", fileName: "w.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 5 * 6e4).toISOString() }
 ];
 await post("/api/publish", { result: fresh, changedAt: new Date().toISOString() });
 await tv2.goto(base + "/?src=/api/feed-snapshot&tv=1");
 await tv2.waitForFunction(() => /EXCEL SAVED/i.test(document.getElementById("dept-grid").textContent), null, { timeout: 15000 }).catch(() => {});
 const cardsText = await tv2.evaluate(() => Array.from(document.getElementById("dept-grid").children).map((c) => c.textContent.replace(/\s+/g, " ")));
-check(/No Excel update for 1H 30M/i.test(cardsText[0] || ""), "FAB card flags 90 min without an Excel save (" + zone + ")");
+check(/No Excel update for 2H 10M/i.test(cardsText[0] || ""), "FAB card flags 2h10m without an Excel save (" + zone + ")");
 check(/Excel saved/i.test(cardsText[1] || "") && !/No Excel update/i.test(cardsText[1] || ""), "WELDING card shows its save time");
 check(!tvRequests.some((u) => /vendor\/xlsx\.js/.test(u)), "TV never downloads the Excel reader");
 const badgeToday = await tv2.evaluate(() => getComputedStyle(document.getElementById("data-day-badge")).display);
