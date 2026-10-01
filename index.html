@@ -1692,6 +1692,38 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (!sheetName) return null;
     return buildPaintFromSheet(wb.Sheets[sheetName], paintWeekAttainment(wb, selectedDateISO), selectedDateISO, warnings);
   }
+  // The color in the booth is the one where painted pieces (column Q) were entered
+  // last: when numbers start going into another color, the line has changed color.
+  // The source remembers each color's painted total between reads of the sheet, so a
+  // color whose total went up becomes the current one wherever it sits on the sheet.
+  // With nothing to compare yet (first read after a reload) it takes the lowest color
+  // on the sheet that has painted pieces, then the top color if none has started.
+  var paintColorMemory = { date: null, done: {}, current: null };
+  function pickPaintColor(dateISO, sections) {
+    const mem = paintColorMemory;
+    if (mem.date !== dateISO) { mem.date = dateISO; mem.done = {}; mem.current = null; }
+    const top = sections[0].name;
+    // A color listed twice on the sheet counts as one, placed at its lowest listing.
+    const merged = [];
+    for (const s of sections) {
+      const i = merged.findIndex((m) => m.name === s.name);
+      const prev = i === -1 ? 0 : merged.splice(i, 1)[0].done;
+      merged.push({ name: s.name, done: prev + s.done });
+    }
+    sections = merged;
+    const firstRead = Object.keys(mem.done).length === 0;
+    const grew = firstRead ? [] : sections.filter((s) => s.done > (mem.done[s.name] || 0));
+    const started = sections.filter((s) => s.done > 0);
+    let current;
+    if (grew.length) current = grew[grew.length - 1].name;
+    else if (mem.current && sections.some((s) => s.name === mem.current && s.done > 0)) current = mem.current;
+    else if (started.length) current = started[started.length - 1].name;
+    else current = top;
+    mem.done = {};
+    for (const s of sections) mem.done[s.name] = s.done;
+    mem.current = current;
+    return current;
+  }
   function buildPaintFromSheet(sheet, weekAttainmentPct, selectedDateISO, warnings) {
     if (!sheet || typeof XLSX === "undefined") return null;
     const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
@@ -1747,18 +1779,12 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
           const bVal = cellNumber(getCell(sheet, "B" + rr), [], "");
           if (qVal !== null) sectionTotal += qVal;
           else if (fVal !== null) sectionTotal += fVal;
-          if (bVal !== null && bVal > 0) { hasSched = true; sectionSched += bVal; if (qVal !== null) sectionDone += qVal; }
+          if (qVal !== null && qVal > 0) sectionDone += qVal;
+          if (bVal !== null && bVal > 0) { hasSched = true; sectionSched += bVal; }
         }
         return { name: section.name, total: sectionTotal, scheduled: sectionSched, done: sectionDone, hasSched };
       });
-      // Colors run top to bottom in the order they are painted, so the one in the
-      // booth is the first (top-most) color whose scheduled pieces are not all painted.
-      // A color further down that only has quantities filled in has not started yet.
-      const pending = sectionTotals.find((s) => s.hasSched && s.done < s.scheduled);
-      const withProduction = sectionTotals.filter((s) => s.total > 0);
-      if (pending) currentColorName = pending.name;
-      else if (withProduction.length > 0) currentColorName = withProduction[withProduction.length - 1].name;
-      else currentColorName = sectionTotals[0].name;
+      currentColorName = pickPaintColor(selectedDateISO, sectionTotals);
     }
     let downtimeMins = 0;
     const downtimeMessages = [];

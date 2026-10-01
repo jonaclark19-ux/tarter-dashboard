@@ -122,7 +122,7 @@ const ld = await src.evaluate(() => {
   const days = t.parseLoadSignOff(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
   return { days: days.map((d) => d.iso), week: t.loadingFor([{ days }], "2026-09-30") };
 });
-// --- paint "currently painting": the top-most color that still has pieces to paint
+// --- paint "currently painting": the color where painted pieces were entered last
 const paintColors = await src.evaluate(async () => {
   await window.__t.ensureXlsx();
   const sheetFor = (rows) => {
@@ -130,16 +130,26 @@ const paintColors = await src.evaluate(async () => {
     for (const r of rows) aoa.push(Array.from({ length: 18 }, (_, i) => (r[i] === undefined ? null : r[i])));
     return XLSX.utils.aoa_to_sheet(aoa);
   };
-  // columns: A name, B scheduled, E totals marker, F quantity, Q produced
+  // columns: A name, B scheduled, E totals marker, F quantity, Q painted
   const r = (a, b, f, q) => { const x = []; x[0] = a; if (b !== null) x[1] = b; if (f !== null) x[5] = f; if (q !== null) x[16] = q; return x; };
   const tot = (b, q) => { const x = r("TOTAL", b, null, q); x[4] = "TOTAL"; return x; };
-  const midShift = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 40), r("BLACK", null, null, null), r("PROD2", 200, 200, null), tot(300, 40)]);
-  const greyDone = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 100), r("BLACK", null, null, null), r("PROD2", 200, 200, 10), tot(300, 110)]);
-  const allDone = sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, 100), r("BLACK", null, null, null), r("PROD2", 200, 200, 200), tot(300, 300)]);
-  const name = (sh) => { const d = window.__t.buildPaintFromSheet(sh, null, "2026-09-30", []); return d && d.currentColor ? d.currentColor.name : null; };
-  return [name(midShift), name(greyDone), name(allDone)];
+  // GREY on top, BLACK below; BLACK has its quantities typed in but nothing painted
+  const greyBlack = (g, k) => sheetFor([r("GREY", null, null, null), r("PROD1", 100, 100, g), r("BLACK", null, null, null), r("PROD2", 200, 200, k), tot(300, (g || 0) + (k || 0))]);
+  // BLACK on top, GREY below
+  const blackGrey = (k, g) => sheetFor([r("BLACK", null, null, null), r("PROD2", 200, 200, k), r("GREY", null, null, null), r("PROD1", 100, 100, g), tot(300, (g || 0) + (k || 0))]);
+  const name = (sh, day) => { const d = window.__t.buildPaintFromSheet(sh, null, day, []); return d && d.currentColor ? d.currentColor.name : null; };
+  return [
+    // day 1: nothing painted -> top color; GREY painting; BLACK starts -> BLACK; more GREY typed later -> GREY
+    name(greyBlack(null, null), "2026-10-01"), name(greyBlack(40, null), "2026-10-01"), name(greyBlack(40, 10), "2026-10-01"), name(greyBlack(60, 10), "2026-10-01"),
+    // a read with no new numbers keeps the current color
+    name(greyBlack(60, 10), "2026-10-01"),
+    // day 2, BLACK listed first and half done, then GREY gets numbers -> GREY
+    name(blackGrey(50, null), "2026-10-02"), name(blackGrey(50, 5), "2026-10-02"),
+    // first read after a reload (new day): lowest color with painted pieces
+    name(blackGrey(50, 5), "2026-10-03")
+  ];
 });
-check(paintColors.join(",") === "GREY,BLACK,BLACK", "currently painting follows the top-most unfinished color: " + paintColors.join(","));
+check(paintColors.join(",") === "GREY,GREY,BLACK,GREY,GREY,BLACK,GREY,GREY", "currently painting = color where numbers were entered last: " + paintColors.join(","));
 check(ld.days.join(",") === "2026-09-28,2026-09-29", "sign-off tabs read by date, impossible 9-31 skipped: " + ld.days.join(","));
 check(ld.week.trailersWeek === 4 && ld.week.piecesWeek === 672 && ld.week.shortsWeek === 31, "week totals from the tab summaries");
 const top = Object.fromEntries(ld.week.shorts);
