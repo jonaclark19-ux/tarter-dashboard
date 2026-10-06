@@ -416,6 +416,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       this.hoursRemaining = this.remaining / 60;
       this.uplhCurrent = this._findStat(["UPLH"]);
       this.uplhGoal = this._findStat(["UPLH GOAL", "GOAL"]);
+      this.uplhPace = uplhPaceNow(dept, this.uplhCurrent, this.uplhGoal);
       this.produced = this._findStat(["ACTUAL", "PAINTED", "PRODUCTION", "DONE QTY"]);
       this.scheduled = this._findStat(["FORECAST", "SCHEDULED", "TOTAL QTY"]);
       this.personnelActive = dept.headline && dept.headline.countsAsPersonnel ? dept.headline.active : null;
@@ -462,7 +463,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
           }
         }
       }
-      if (this.uplhCurrent < this.uplhGoal) {
+      const pacedUplh = this.uplhPace && !this.uplhPace.building ? this.uplhPace.uplh : this.uplhCurrent;
+      if (pacedUplh < this.uplhGoal) {
         return { level: 2, color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "\u25BC", title: "SLOWING DOWN", message: "BELOW TARGET UPLH" };
       }
       return { level: 1, color: "bg-slate-50 border-green-500 text-slate-500", animate: "", icon: "\u2713", title: "ON PACE", message: "OPERATING NORMALLY" };
@@ -510,6 +512,28 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       fraction: Math.max(0, Math.min(1, elapsedMinutes / totalMinutes)),
       isHistorical: false,
       complete: false
+    };
+  }
+  // Departments whose Excel UPLH divides today's output by a full shift of labor hours,
+  // so at 10 AM it reads ~half of goal even when the crew is right on pace. For these the
+  // card also shows the pace at this hour: UPLH scaled to the share of the shift worked.
+  var UPLH_PACE_DEPTS = ["tanks"];
+  var UPLH_PACE_MIN_MINUTES = 60;
+  function uplhPaceNow(dept, uplh, goal) {
+    if (!dept || UPLH_PACE_DEPTS.indexOf(dept.id) === -1 || dept.placeholder) return null;
+    if (uplh === null || goal === null || !(goal > 0)) return null;
+    const selectedDate = typeof state !== "undefined" && state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
+    const shift = shiftProjectionContext(selectedDate);
+    if (shift.isHistorical || shift.complete) return null;
+    if (shift.elapsedMinutes < UPLH_PACE_MIN_MINUTES) return { building: true };
+    const paceUplh = uplh / shift.fraction;
+    const now = plantNow();
+    const h = now.getHours(), m = now.getMinutes();
+    return {
+      uplh: paceUplh,
+      pct: Math.round(paceUplh / goal * 100),
+      shiftPct: Math.round(shift.fraction * 100),
+      clock: (h % 12 || 12) + ":" + String(m).padStart(2, "0") + " " + (h < 12 ? "AM" : "PM")
     };
   }
   // A department is "down" when its sheet says 0 people present (typed as 0, not left
@@ -792,6 +816,25 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         const textColor = neutral ? "text-slate-400" : isUplhGood ? "text-tarter-navy" : isUplhOk ? "text-amber-700" : "text-orange-700";
         const labelColor = neutral || isUplhGood ? "text-slate-500" : isUplhOk ? "text-amber-700" : "text-orange-700";
         const barBg = isUplhGood ? "bg-green-500" : isUplhOk ? "bg-amber-400" : "bg-orange-500";
+        const pace = engine.uplhPace;
+        let paceHtml = "";
+        if (pace && pace.building) {
+          paceHtml = `
+          <div class="uplh-pace flex items-center justify-between gap-2 border-t border-slate-200" style="margin-top:.75rem;padding-top:.75rem">
+            <span class="text-[10px] xl:text-xs font-bold text-slate-500 tracking-widest uppercase">PACE AT THIS HOUR</span>
+            <span class="text-[10px] xl:text-xs font-bold text-slate-400 tracking-widest uppercase">FROM ${SHIFT_START_HOUR + UPLH_PACE_MIN_MINUTES / 60}:00 AM</span>
+          </div>`;
+        } else if (pace) {
+          const paceColor = pace.pct >= 100 ? "text-green-600" : pace.pct >= 80 ? "text-amber-600" : "text-red-600";
+          paceHtml = `
+          <div class="uplh-pace flex items-center justify-between gap-2 border-t border-slate-200" style="margin-top:.75rem;padding-top:.75rem">
+            <div class="min-w-0">
+              <div class="text-[10px] xl:text-xs font-black text-slate-600 tracking-widest uppercase leading-tight">PACE AT ${pace.clock}</div>
+              <div class="text-[9px] xl:text-[10px] font-semibold text-slate-400 leading-tight">${formatNumberUI(pace.uplh)} UPLH · ${pace.shiftPct}% of shift worked</div>
+            </div>
+            <div class="text-4xl 2xl:text-5xl font-black ${paceColor} metric-num leading-none whitespace-nowrap">${pace.pct}<span class="text-2xl 2xl:text-3xl opacity-70">%</span></div>
+          </div>`;
+        }
         heroHtml = `
         <div class="${blockBg} border rounded-xl p-4 mb-5 relative overflow-hidden shrink-0">
           <div class="flex justify-between items-center mb-1">
@@ -803,7 +846,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
           </div>
           <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
             <div class="h-full ${barBg} rounded-full bg-stripes" style="width: ${uplhPct}%"></div>
-          </div>
+          </div>${paceHtml}
         </div>
       `;
         heroHtml += renderAttainmentRow(data);
