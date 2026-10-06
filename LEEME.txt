@@ -37,13 +37,15 @@ DISEÑO (oficial desde 30-sep-2026)
     PRODUCTO-CANTIDAD, ej. "SO1347500 EWBL66-2,GUT22-1"); se muestran los 6
     con más piezas. Meta semanal de trailers: 16 (se puede cambiar con
     &loadgoal=N en el link).
-  - TANKS: "PACE AT 10:00 AM" debajo del UPLH. El UPLH del Excel divide la
-    producción entre el turno COMPLETO (personas x 10 h), así que a media
-    mañana siempre se ve bajo. El ritmo lo ajusta a la parte del turno ya
-    trabajada (5:00 AM a 3:30 PM): UPLH / % del turno. Ej. a las 10 AM
-    (48% del turno) un UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96% de la meta.
-    Aparece a partir de las 6:00 AM; al terminar el turno se oculta (ya es
-    igual al UPLH del Excel). La alerta "BELOW TARGET UPLH" usa este ritmo.
+  - Anillo TO GOAL (en lugar de WEEK, en cada departamento): % de la meta de
+    UPLH según la hora del día. El UPLH del Excel divide la producción entre
+    el turno COMPLETO (personas x 10 h), así que a media mañana siempre se ve
+    bajo. TO GOAL lo ajusta a la parte del turno ya trabajada (5:00 AM a
+    3:30 PM): UPLH / % del turno / meta. Ej. a las 10 AM (48% del turno) un
+    UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%. Debajo dice "At 10:00 AM".
+    Antes de las 6:00 AM muestra "--"; al terminar el turno dice "Full shift"
+    (= UPLH / meta). Verde 100%+, amarillo 80-99%, rojo <80%. La alerta
+    "BELOW TARGET UPLH" usa este mismo ritmo.
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
 
