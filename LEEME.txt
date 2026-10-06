@@ -46,6 +46,14 @@ DISEÑO (oficial desde 30-sep-2026)
     Antes de las 6:00 AM muestra "--"; al terminar el turno dice "Full shift"
     (= UPLH / meta). Verde 100%+, amarillo 80-99%, rojo <80%. La alerta
     "BELOW TARGET UPLH" usa este mismo ritmo.
+  - Anillo DONE (antes "DAY / Today"): producción de hoy / programado
+    (ej. 81 de 135 = 60%). Sube durante el día hasta el cierre.
+  - Cuadro PLANT TO GOAL (antes "Projected end"): promedio simple de los
+    anillos TO GOAL de los departamentos que están trabajando (cada uno
+    cuenta igual). Debajo, "Plan: ~3,075 of 3,948 units by 3:30 PM (78%)":
+    las piezas de todos los departamentos sumadas y proyectadas al ritmo
+    actual (en esta suma FAB pesa mucho más porque hace miles de piezas).
+    Verde 100%+, amarillo 80-99%, rojo <80%. Antes de las 6:00 AM: N/A.
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
 

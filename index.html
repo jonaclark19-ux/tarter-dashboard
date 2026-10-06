@@ -566,54 +566,27 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         ? { actual: null, target: null, percent: null }
         : overallAttainmentMock;
 
-    let projectedEndAttainment = null;
-    let projectionCaption = "No comparable live totals";
-    let projectionDetail = "Projection unavailable";
-
+    // Plant TO GOAL: the plain average of the departments' TO GOAL rings (UPLH pace at
+    // this hour vs goal), so every department counts the same. Summed units let FAB's
+    // thousands of parts outweigh a 135-unit TANKS day.
+    const paces = departments.filter((d) => !d.placeholder).map((d) => new AlertEngine(d, 0).uplhPace).filter(Boolean);
+    const paced = paces.filter((p) => p.pct !== null);
+    let projectedEndAttainment = paced.length ? Math.round(paced.reduce((sum, p) => sum + p.pct, 0) / paced.length) : null;
+    let projectionCaption = "No UPLH data";
+    if (paced.length) projectionCaption = "Avg of " + paced.length + " dept" + (paced.length === 1 ? "" : "s") + " \xB7 " + paced[0].sub.replace(/^At/, "at").replace(/^Full/, "full");
+    else if (paces.length) projectionCaption = "Building \xB7 " + paces[0].sub.replace(/^From/, "from");
+    let projectionDetail = "";
     if (!liveMode) {
-      // Sample mode stays visually useful, but these values can never leak into LIVE mode.
-      let simulatedScore = 0, weights = 0;
-      departments.forEach((d) => {
-        const engine = new AlertEngine(d, 0);
-        if (engine.uplhCurrent !== null && engine.uplhGoal !== null && engine.uplhGoal > 0) {
-          simulatedScore += engine.uplhCurrent / engine.uplhGoal;
-          weights++;
-        } else if (d.legacyFab) {
-          simulatedScore += d.attainment / 100;
-          weights++;
-        }
-      });
-      projectedEndAttainment = weights > 0 ? Math.round(simulatedScore / weights * 100) : overallAttainmentMock.percent;
-      projectionCaption = "Sample projection";
       projectionDetail = "Demo data only";
     } else if (overallTarget > 0) {
+      // Plan line: today's summed units, projected at the current pace to 3:30 PM.
       const selectedDate = state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
       const shift = shiftProjectionContext(selectedDate);
-      if (shift.isHistorical || shift.complete) {
-        projectedEndAttainment = overall.percent;
-        projectionCaption = shift.isHistorical ? "Selected day final attainment" : "Shift complete";
-        projectionDetail = overall.actual !== null ? overall.actual.toLocaleString() + " of " + overall.target.toLocaleString() + " units" : "No comparable totals";
-      } else if (shift.elapsedMinutes < 60 || shift.fraction <= 0) {
-        projectedEndAttainment = null;
-        projectionCaption = "Building projection";
-        projectionDetail = "Uses current output pace after 60 minutes";
-      } else {
+      const of = " of " + overallTarget.toLocaleString() + " units";
+      if (shift.isHistorical || shift.complete) projectionDetail = "Plan: " + Math.round(overallActual).toLocaleString() + of + " (" + overall.percent + "%)";
+      else if (shift.elapsedMinutes >= UPLH_PACE_MIN_MINUTES && shift.fraction > 0) {
         const projectedUnits = overallActual / shift.fraction;
-        projectedEndAttainment = Math.round(projectedUnits / overallTarget * 100);
-        projectionCaption = "Projected " + Math.round(projectedUnits).toLocaleString() + " units at 3:30 PM";
-        const elapsedHours = shift.elapsedMinutes / 60;
-        const remainingHours = shift.remainingMinutes / 60;
-        const currentRate = elapsedHours > 0 ? overallActual / elapsedHours : 0;
-        const remainingUnits = Math.max(0, overallTarget - overallActual);
-        const requiredRate = remainingHours > 0 ? remainingUnits / remainingHours : 0;
-        if (remainingUnits <= 0 || requiredRate <= currentRate) {
-          projectionDetail = "On pace to hit plan";
-        } else if (currentRate > 0) {
-          const paceIncrease = Math.max(0, Math.round((requiredRate / currentRate - 1) * 100));
-          projectionDetail = "Need +" + paceIncrease + "% pace to hit plan";
-        } else {
-          projectionDetail = "Production pace not established yet";
-        }
+        projectionDetail = "Plan: ~" + Math.round(projectedUnits).toLocaleString() + of + " by 3:30 PM (" + Math.round(projectedUnits / overallTarget * 100) + "%)";
       }
     }
 
@@ -621,7 +594,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (projectedEndAttainment !== null) {
       attainmentStatus = "on_target";
       if (projectedEndAttainment < 80) attainmentStatus = "critical";
-      else if (projectedEndAttainment < 95) attainmentStatus = "at_risk";
+      else if (projectedEndAttainment < 100) attainmentStatus = "at_risk";
     }
     return {
       attainment: { percent: projectedEndAttainment, caption: projectionCaption, detail: projectionDetail },
@@ -660,7 +633,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       <div class="flex justify-between items-start mb-1 gap-2 flex-wrap">
         <h3 class="text-[10px] xl:text-[11px] font-bold text-slate-400 tracking-widest uppercase flex items-center gap-1.5">
            <svg class="w-3.5 h-3.5 text-slate-300" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-           Projected End Attainment
+           Plant To Goal
         </h3>
         <span class="px-1.5 py-0.5 text-[8px] xl:text-[9px] font-black tracking-wider rounded uppercase border ${attBg}">${getStatusLabel(kpis.attainmentStatus)}</span>
       </div>
@@ -718,7 +691,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       row.innerHTML = safety + `
       <div class="kpi2">
         <div class="kpi2-num metric-num ${attColor}">${projectedValue}</div>
-        <div class="kpi2-text"><div class="kpi2-title">Projected end</div><div class="kpi2-sub">${escapeHtml(caption)}</div>${kpis.attainment.detail ? `<div class="kpi2-sub">${escapeHtml(kpis.attainment.detail)}</div>` : ""}</div>
+        <div class="kpi2-text"><div class="kpi2-title">Plant to goal</div><div class="kpi2-sub">${escapeHtml(caption)}</div>${kpis.attainment.detail ? `<div class="kpi2-sub">${escapeHtml(kpis.attainment.detail)}</div>` : ""}</div>
       </div>
       <div class="kpi2">
         <div class="kpi2-num metric-num ${short ? "text-red-500" : "text-green-600"}">${kpis.employees.present}<span class="kpi2-of">/${kpis.employees.expected}</span></div>
@@ -774,7 +747,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
            <div class="text-[9px] xl:text-[10px] font-semibold text-slate-400 leading-tight">${sub}</div>
         </div>
       </div>`;
-    const dayCell = cell(data.attainment, "DAY", "Today", null, !pace);
+    const dayCell = cell(data.attainment, "DONE", "Of plan", null, !pace);
     const weekCell = pace ? cell(pace.pct, "TO GOAL", pace.sub, paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
     const divider = hasWeek ? `<div class="w-px self-stretch bg-slate-200 mx-1 my-1"></div>` : "";
     return `
