@@ -743,12 +743,13 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       <div class="flex items-center gap-2.5 ${grow ? "flex-1" : "flex-shrink-0"} min-w-0">
         <div class="ring-slot flex-shrink-0" data-size-lg="56" data-size-sm="48">${progressRing(value, LAYOUT_V2 ? 84 : 56, colorFn)}</div>
         <div class="min-w-0">
-           <div class="text-[10px] xl:text-xs font-black text-slate-600 tracking-widest uppercase truncate leading-tight">${label}</div>
-           <div class="text-[9px] xl:text-[10px] font-semibold text-slate-400 leading-tight">${sub}</div>
+           <div class="text-[10px] xl:text-xs font-black text-slate-600 tracking-widest uppercase whitespace-nowrap leading-tight" style="line-height:1.15">${label}</div>
+           <div class="text-[9px] xl:text-[10px] font-semibold text-slate-400 leading-tight" style="margin-top:2px">${sub}</div>
         </div>
       </div>`;
-    const dayCell = cell(data.attainment, "DONE", "Of plan", null, !pace);
-    const weekCell = pace ? cell(pace.pct, "TO GOAL", pace.sub, paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
+    // Labels are fixed markup; the <br> keeps them two short lines beside the ring.
+    const dayCell = cell(data.attainment, "DAILY<br>ATT.", "", null, !pace);
+    const weekCell = pace ? cell(pace.pct, "TO UPLH<br>GOAL", pace.sub, paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
     const divider = hasWeek ? `<div class="w-px self-stretch bg-slate-200 mx-1 my-1"></div>` : "";
     return `
       <div class="mb-6 px-1 shrink-0">
