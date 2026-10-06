@@ -37,6 +37,23 @@ DISEÑO (oficial desde 30-sep-2026)
     PRODUCTO-CANTIDAD, ej. "SO1347500 EWBL66-2,GUT22-1"); se muestran los 6
     con más piezas. Meta semanal de trailers: 16 (se puede cambiar con
     &loadgoal=N en el link).
+  - Anillo TO GOAL (en lugar de WEEK, en cada departamento): % de la meta de
+    UPLH según la hora del día. El UPLH del Excel divide la producción entre
+    el turno COMPLETO (personas x 10 h), así que a media mañana siempre se ve
+    bajo. TO GOAL lo ajusta a la parte del turno ya trabajada (5:00 AM a
+    3:30 PM): UPLH / % del turno / meta. Ej. a las 10 AM (48% del turno) un
+    UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%. Debajo dice "At 10:00 AM".
+    Antes de las 6:00 AM muestra "--"; al terminar el turno dice "Full shift"
+    (= UPLH / meta). Verde 100%+, amarillo 80-99%, rojo <80%. La alerta
+    "BELOW TARGET UPLH" usa este mismo ritmo.
+  - Anillo DONE (antes "DAY / Today"): producción de hoy / programado
+    (ej. 81 de 135 = 60%). Sube durante el día hasta el cierre.
+  - Cuadro PLANT TO GOAL (antes "Projected end"): promedio simple de los
+    anillos TO GOAL de los departamentos que están trabajando (cada uno
+    cuenta igual). Debajo, "Plan: ~3,075 of 3,948 units by 3:30 PM (78%)":
+    las piezas de todos los departamentos sumadas y proyectadas al ritmo
+    actual (en esta suma FAB pesa mucho más porque hace miles de piezas).
+    Verde 100%+, amarillo 80-99%, rojo <80%. Antes de las 6:00 AM: N/A.
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
 
