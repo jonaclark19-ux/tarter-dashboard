@@ -47,7 +47,7 @@
     SharePoint guarda el archivo cada 1–5 minutos aunque en pantalla el cambio se vea al instante; ese tiempo
     no aparece en esta tabla (para medirlo, anota la hora en que escribes el dato y compárala con esta columna).
     Solo se registran cambios reales de números, no los avisos de "sigo viva". Las TVs se nombran usando
-    <b>/tv/Nombre</b> en su link. Esta página se actualiza cada 10 s.
+    <b>/tv/Nombre</b> en su link. Esta página se actualiza cada minuto.
   </p>
 </main>
 <script>
@@ -95,7 +95,9 @@
     });
   }
   load();
-  setInterval(load, 10000);
+  // Once a minute, and only while the tab is on screen: each load is 2 database reads.
+  setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
 </script>
 </body>
 </html>

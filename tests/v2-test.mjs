@@ -1,7 +1,7 @@
 // Layout v2 (?preview=1): TV Board Info parsing, safety tile, loading strip, uniform cards.
 import fs from "node:fs";
 import { createRequire } from "node:module";
-const require = createRequire(process.env.NODE_PATH_GLOBAL + "/");
+const require = createRequire((process.env.NODE_PATH_GLOBAL || "/opt/node22/lib/node_modules") + "/");
 const { chromium } = require("playwright");
 const { server } = await import("./server.mjs");
 await new Promise((r) => server.listen(4201, r));

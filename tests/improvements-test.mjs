@@ -2,7 +2,7 @@
 // the keep-alive endpoint, and that wake lock / daily reload wiring doesn't break load.
 import fs from "node:fs";
 import { createRequire } from "node:module";
-const require = createRequire(process.env.NODE_PATH_GLOBAL + "/");
+const require = createRequire((process.env.NODE_PATH_GLOBAL || "/opt/node22/lib/node_modules") + "/");
 const { chromium } = require("playwright");
 const { server, db } = await import("./server.mjs");
 await new Promise((r) => server.listen(4196, r));

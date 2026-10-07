@@ -44,6 +44,14 @@ main .font-semibold { font-weight: 700; }
    so all four cards line up. */
 #dept-grid p.break-words { letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* ===== Layout v2 (?preview=1) ===== */
+/* TV: the no-connection / source-offline warning is a big fixed banner (no footer on TVs). */
+.tv-alert-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; justify-content: center; padding: 14px 24px !important; font-size: 30px !important; letter-spacing: .06em !important; border-radius: 0 !important; }
+html.v2 .safety-tile.safety-alert { background: #b91c1c; }
+/* Tailwind utilities used in templates but missing from the precompiled sheet above. */
+.gap-2\.5 { gap: .625rem; } .w-px { width: 1px; } .mx-1 { margin-left: .25rem; margin-right: .25rem; } .my-1 { margin-top: .25rem; margin-bottom: .25rem; }
+.self-stretch { align-self: stretch; } .bg-amber-500 { background-color: #f59e0b; } .border-t-slate-300 { border-top-color: #cbd5e1; } .pb-0\.5 { padding-bottom: .125rem; }
+.normal-case { text-transform: none; } .tracking-normal { letter-spacing: 0; } .bg-slate-300 { background-color: #cbd5e1; }
+@media (min-width:1280px) { .xl\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; } }
 html.v2 header > div { padding-top: 18px; padding-bottom: 18px; }
 html.v2 .tarter-mark { width: 70px; height: 70px; }
 html.v2 .tarter-wordmark { font-size: 46px; }
@@ -65,11 +73,11 @@ html.v2 .kpi2-sub { font-size: 14px; font-weight: 700; color: #5b6b80; white-spa
 html.v2 .kpi2-dark .kpi2-sub { color: #e7d8b1; }
 html.v2 #dept-grid > div { padding: 18px 20px !important; }
 html.v2 .card-head { margin-bottom: 10px; }
-html.v2 .dept-name { font-size: 37px; line-height: 1.05; max-width: calc(100% - 185px); white-space: nowrap; overflow: hidden; }
-html.v2 #dept-grid .absolute.top-4.right-4 { top: 14px !important; right: 14px !important; padding: 4px 8px !important; font-size: 12px !important; letter-spacing: .04em !important; }
+html.v2 .dept-name { font-size: 37px; line-height: 1.05; max-width: calc(100% - 180px); white-space: nowrap; overflow: hidden; }
+html.v2 #dept-grid .absolute.top-4.right-4 { top: 14px !important; right: 14px !important; padding: 6px 10px !important; font-size: 17px !important; letter-spacing: .03em !important; }
 html.v2 .card-subrow { display: flex; align-items: center; gap: 12px; margin-top: 6px; min-width: 0; }
 html.v2 .card-pill { padding: 4px 10px; font-size: 20px; }
-html.v2 #dept-grid .freshness { font-size: 13px !important; }
+html.v2 #dept-grid .freshness { font-size: 15px !important; }
 html.v2 #dept-grid .text-4xl.metric-num { font-size: 54px !important; }
 html.v2 #dept-grid .text-4xl.metric-num + div { font-size: 30px !important; }
 html.v2 #dept-grid .text-4xl.metric-num + div span { font-size: 15px !important; }
@@ -299,12 +307,17 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const m = /[?&]tz=([^&]+)/.exec(location.search);
     if (m) { setPlantTimeZone(decodeURIComponent(m[1])); plantTzFromUrl = plantTimeZone !== null; }
   })();
-  var PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR = 10;
   var EXPECTED_HEADCOUNT = { welding: 16, paint: 10, tanks: 7, fab: 4 };
-  var UPLH_GOAL_FALLBACK = { welding: 4 };
   var WELD_BLOCK_STARTS = ["A", "E", "I", "M", "Q"];
   var FAB_BLOCK_STARTS = ["A", "F", "K", "P", "U"];
-  var UPLH_GOAL_TEXT_RE = /(\d+(?:\.\d+)?)\s*$/;
+  // "UPLH Goal - 4.38", "UPLH Goal: 4.38 pcs", "UPLH GOAL .45", "UPLH Goal 4,38".
+  var UPLH_GOAL_TEXT_RE = /uplh\s*goal\D*?(\d*[.,]?\d+)/i;
+  function parseUplhGoalText(text) {
+    const m = UPLH_GOAL_TEXT_RE.exec(String(text || "")) || /(\d*[.,]?\d+)\s*$/.exec(String(text || "").trim());
+    if (!m) return null;
+    const n = parseFloat(m[1].replace(",", "."));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
   var TANK_DAY_LAYOUT = { 0: [1, "A"], 1: [1, "H"], 2: [1, "O"], 3: [15, "A"], 4: [15, "H"] };
   var PAINT_COLOR_MAP = {
     BLACK: { name: "BLACK", hex: "#1A1A1A", gradient: "linear-gradient(90deg, #013449, #1A1A1A)" },
@@ -322,7 +335,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     GALV: { name: "GALV", hex: "#B0B7BD", gradient: "linear-gradient(90deg, #013449, #B0B7BD)" },
     "GALV.": { name: "GALV", hex: "#B0B7BD", gradient: "linear-gradient(90deg, #013449, #B0B7BD)" }
   };
-  var ERROR_STRINGS = /* @__PURE__ */ new Set(["#DIV/0!", "#NAME?", "#REF!", "#VALUE!", "#N/A", "#NULL!"]);
+  var ERROR_STRINGS = /* @__PURE__ */ new Set(["#DIV/0!", "#NAME?", "#REF!", "#VALUE!", "#N/A", "#NULL!", "#NUM!", "#SPILL!", "#CALC!", "#GETTING_DATA", "#FIELD!", "#BLOCKED!", "#CONNECT!", "#BUSY!", "#UNKNOWN!"]);
   var SHEET_DATE_RE = /(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/;
   var CELL_DATE_RE = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2}|\d{4})$/;
   // One workbook per department, named for the department; the tabs inside are named
@@ -433,41 +446,43 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       }
       return null;
     }
+    /**
+     * One status per department, driven by the TO UPLH GOAL pace: green from PACE_GREEN,
+     * amber from PACE_AMBER, red below. A crew shortage can raise it. The badge, the top
+     * border, the card colors and the plant alerts all read this one answer.
+     */
     diagnose() {
-      if (!this.dept.legacyFab && (this.uplhCurrent === null || this.uplhGoal === null)) {
-        return { level: 5, color: "bg-slate-800 border-slate-800 text-white", icon: "\u2716", title: "DATA OFFLINE", message: "VERIFY SHEET" };
+      const ok = { level: 1, tone: "green", color: "bg-slate-50 border-green-500 text-slate-500", animate: "", icon: "\u2713", title: "ON PACE", message: "ON PACE" };
+      if (this.dept.placeholder || isDeptDown(this.dept)) return Object.assign({}, ok, { tone: "neutral", title: "", message: "" });
+      const shift = shiftProjectionContext(selectedDateISO());
+      const live = !shift.isHistorical && !shift.complete;
+      const pace = this.uplhPace;
+      let st;
+      if (this.uplhCurrent === null || this.uplhGoal === null || !(this.uplhGoal > 0)) {
+        st = { level: 2, tone: "amber", color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "?", title: "CHECK SHEET", message: "UPLH MISSING" };
+      } else if (!pace || pace.pct === null) {
+        st = Object.assign({}, ok, { tone: "neutral", title: "BUILDING", message: "BUILDING", level: 1 });
+      } else if (this.scheduled > 0 && this.produced !== null && this.produced >= this.scheduled) {
+        st = { level: 1, tone: "green", color: "bg-green-600 border-green-600 text-white", animate: "", icon: "\u2713", title: "GOAL MET", message: "GOAL MET", showBadge: true };
+      } else if (pace.pct >= PACE_GREEN) {
+        st = ok;
+      } else if (pace.pct >= PACE_AMBER) {
+        st = { level: 2, tone: "amber", color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "\u25BC", title: "BEHIND PACE", message: "BEHIND PACE" };
+      } else {
+        st = { level: 4, tone: "red", color: "bg-red-600 border-red-600 text-white", animate: "animate-pulse-border", icon: "\u2716", title: "CRITICAL", message: "CRITICAL PACE" };
       }
-      if (this.personnelActive !== null && this.personnelExpected !== null && this.personnelActive < this.personnelExpected) {
+      const paceTone = st.tone;
+      // Missing people only matter on a live shift; a weekend or past day never alerts.
+      if (live && this.personnelActive !== null && this.personnelExpected > 0 && this.personnelActive < this.personnelExpected) {
         const missing = this.personnelExpected - this.personnelActive;
-        const now = plantNow();
-        if (now.getHours() < PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR) {
-          return { level: 4, color: "bg-red-600 border-red-600 text-white", animate: "animate-pulse-border", icon: "\u26A0", title: "SHORTAGE", message: `MISSING ${missing} WORKER${missing === 1 ? "" : "S"}` };
+        const level = missing / this.personnelExpected >= 0.25 ? 4 : 3;
+        if (level >= st.level) {
+          st = { level, tone: level === 4 ? "red" : "orange", color: level === 4 ? "bg-red-600 border-red-600 text-white" : "bg-orange-500 border-orange-500 text-white", animate: level === 4 ? "animate-pulse-border" : "", icon: "\u26A0", title: "SHORTAGE", message: `${missing} MISSING`, missing };
         }
       }
-      if (this.dept.attainment >= 100) {
-        return { level: 1, color: "bg-green-600 border-green-600 text-white", animate: "", icon: "\u2713", title: "GOAL MET", message: "GOAL ACHIEVED", showBadge: true };
-      }
-      if (this.dept.legacyFab) {
-        if (this.dept.attainment < 60) return { level: 4, color: "bg-red-600 border-red-600 text-white", animate: "animate-pulse-border", icon: "\u26A0", title: "CRITICAL", message: "ATTAINMENT < 60%" };
-        if (this.dept.attainment < 80) return { level: 2, color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "\u25BC", title: "SLOWING DOWN", message: "PACE DROPPING" };
-        return { level: 1, color: "bg-slate-50 border-green-500 text-slate-500", animate: "", icon: "\u2713", title: "ON PACE", message: "OPERATING NORMALLY" };
-      }
-      if (this.dept.attainment < 95 && this.hoursRemaining > 1 && this.elapsedHours >= 1 && this.scheduled && this.produced !== null) {
-        const deficit = this.scheduled - this.produced;
-        const currentUnitsPerHour = this.produced / this.elapsedHours;
-        if (deficit > 0 && currentUnitsPerHour > 0) {
-          const requiredUnitsPerHour = deficit / this.hoursRemaining;
-          if (requiredUnitsPerHour > currentUnitsPerHour) {
-            const extraNeeded = Math.ceil(requiredUnitsPerHour - currentUnitsPerHour);
-            return { level: 3, color: "bg-orange-500 border-orange-500 text-white", animate: "", icon: "\u{1F3AF}", title: "RECOVERY TARGET", message: `NEED +${extraNeeded} UNITS/HR` };
-          }
-        }
-      }
-      const pacedUplh = this.uplhPace && this.uplhPace.live ? this.uplhPace.uplh : this.uplhCurrent;
-      if (pacedUplh < this.uplhGoal) {
-        return { level: 2, color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "\u25BC", title: "SLOWING DOWN", message: "BELOW TARGET UPLH" };
-      }
-      return { level: 1, color: "bg-slate-50 border-green-500 text-slate-500", animate: "", icon: "\u2713", title: "ON PACE", message: "OPERATING NORMALLY" };
+      // The hero (UPLH) block is colored by the pace alone, even when a shortage owns the badge.
+      st.paceTone = paceTone;
+      return st;
     }
   };
 
@@ -518,21 +533,46 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   // so at 10 AM it reads ~half of goal even when the crew is right on pace. The TO GOAL
   // ring shows the pace at this hour instead: UPLH scaled to the share of the shift worked.
   var UPLH_PACE_MIN_MINUTES = 60;
+  // Pace thresholds shared by the TO UPLH GOAL ring, the card status and PLANT TO GOAL.
+  var PACE_GREEN = 80, PACE_AMBER = 60;
+  function clockLabel(d) {
+    const h = d.getHours(), m = d.getMinutes();
+    return (h % 12 || 12) + ":" + String(m).padStart(2, "0") + " " + (h < 12 ? "AM" : "PM");
+  }
+  function selectedDateISO() {
+    return typeof state !== "undefined" && state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
+  }
+  /** When this department's Excel was last saved, as a plant-clock Date (like plantNow()). */
+  function deptSavedPlant(deptId) {
+    const sources = typeof state !== "undefined" && state.result && Array.isArray(state.result.sources) ? state.result.sources : [];
+    const src = sources.find((x) => x && x.id === deptId);
+    const ms = src && src.savedAt ? Date.parse(src.savedAt) : NaN;
+    if (!Number.isFinite(ms)) return null;
+    return new Date(plantNow().getTime() - (Date.now() - ms));
+  }
   function uplhPaceNow(dept, uplh, goal) {
     if (!dept || uplh === null || goal === null) return null;
-    if (!(goal > 0)) return { pct: 0, sub: "At this hour" };
-    const selectedDate = typeof state !== "undefined" && state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
-    const shift = shiftProjectionContext(selectedDate);
-    if (shift.isHistorical || shift.complete) return { pct: Math.round(uplh / goal * 100), sub: "Full shift" };
-    if (shift.elapsedMinutes < UPLH_PACE_MIN_MINUTES) return { pct: null, sub: "From " + (SHIFT_START_HOUR + UPLH_PACE_MIN_MINUTES / 60) + ":00 AM" };
-    const paceUplh = uplh / shift.fraction;
+    if (dept.placeholder || !(goal > 0)) return { pct: null, sub: "No goal" };
+    const shift = shiftProjectionContext(selectedDateISO());
+    if (shift.isHistorical || shift.complete) return { pct: Math.round(uplh / goal * 100), sub: "Full shift", final: true };
+    // The Excel UPLH only moves when someone saves, so the pace is measured at the last
+    // save, not at the current minute: an 8:00 save viewed at 11:00 still reads "at 8:00".
     const now = plantNow();
-    const h = now.getHours(), m = now.getMinutes();
+    const shiftStart = new Date(now); shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
+    let asOf = now;
+    const saved = deptSavedPlant(dept.id);
+    if (saved && saved >= shiftStart && saved < now) asOf = saved;
+    const elapsed = Math.floor((asOf - shiftStart) / 6e4);
+    if (elapsed < UPLH_PACE_MIN_MINUTES) return { pct: null, sub: "From " + (SHIFT_START_HOUR + UPLH_PACE_MIN_MINUTES / 60) + " AM" };
+    const totalMinutes = (SHIFT_END_HOUR * 60 + SHIFT_END_MINUTE) - SHIFT_START_HOUR * 60;
+    const paceUplh = uplh / Math.min(1, elapsed / totalMinutes);
+    const idle = Math.floor((now - asOf) / 6e4);
     return {
       live: true,
+      stale: idle >= FRESHNESS_STALE_MIN,
       uplh: paceUplh,
       pct: Math.round(paceUplh / goal * 100),
-      sub: "At " + (h % 12 || 12) + ":" + String(m).padStart(2, "0") + " " + (h < 12 ? "AM" : "PM")
+      sub: "At " + clockLabel(asOf)
     };
   }
   // A department is "down" when its sheet says 0 people present (typed as 0, not left
@@ -543,7 +583,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   }
   function calculateDashboardKpis(departments) {
     departments = departments.filter((d) => !isDeptDown(d));
-    const personnelDepts = departments.filter((d) => d.headline && d.headline.countsAsPersonnel);
+    // A blank headcount cell ("--" on the card) stays out of the plant total.
+    const personnelDepts = departments.filter((d) => d.headline && d.headline.countsAsPersonnel && d.headline.active !== null && d.headline.active !== void 0);
     const totalPresent = personnelDepts.reduce((sum, d) => sum + (d.headline.active || 0), 0);
     const totalExpected = personnelDepts.reduce((sum, d) => sum + (d.headline.total || 0), 0);
     const totalDepts = departments.length;
@@ -566,35 +607,30 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         ? { actual: null, target: null, percent: null }
         : overallAttainmentMock;
 
-    // Plant TO GOAL: the plain average of the departments' TO GOAL rings (UPLH pace at
-    // this hour vs goal), so every department counts the same. Summed units let FAB's
-    // thousands of parts outweigh a 135-unit TANKS day.
-    const paces = departments.filter((d) => !d.placeholder).map((d) => new AlertEngine(d, 0).uplhPace).filter(Boolean);
-    const paced = paces.filter((p) => p.pct !== null);
-    let projectedEndAttainment = paced.length ? Math.round(paced.reduce((sum, p) => sum + p.pct, 0) / paced.length) : null;
+    // Plant TO GOAL: the plain average of the departments' TO UPLH GOAL rings, so every
+    // department counts the same (summed units let FAB's thousands of parts outweigh a
+    // 135-unit TANKS day). Each one is capped at PACE_CAP so one bad goal cell can't push
+    // the plant to 500%, and the lowest department is named so a red one can't hide.
+    const PACE_CAP = 150;
+    const paces = departments.filter((d) => !d.placeholder).map((d) => ({ name: d.name, pace: new AlertEngine(d, 0).uplhPace })).filter((x) => x.pace);
+    const paced = paces.filter((x) => x.pace.pct !== null);
+    let projectedEndAttainment = paced.length ? Math.round(paced.reduce((sum, x) => sum + Math.min(PACE_CAP, x.pace.pct), 0) / paced.length) : null;
     let projectionCaption = "No UPLH data";
-    if (paced.length) projectionCaption = "Avg of " + paced.length + " dept" + (paced.length === 1 ? "" : "s") + " \xB7 " + paced[0].sub.replace(/^At/, "at").replace(/^Full/, "full");
-    else if (paces.length) projectionCaption = "Building \xB7 " + paces[0].sub.replace(/^From/, "from");
+    if (paced.length) projectionCaption = "Avg of " + paced.length + " dept" + (paced.length === 1 ? "" : "s") + (paced[0].pace.final ? " \xB7 full shift" : "");
+    else if (paces.length) projectionCaption = "Building \xB7 " + paces[0].pace.sub.replace(/^From/, "from");
     let projectionDetail = "";
     if (!liveMode) {
       projectionDetail = "Demo data only";
-    } else if (overallTarget > 0) {
-      // Plan line: today's summed units, projected at the current pace to 3:30 PM.
-      const selectedDate = state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
-      const shift = shiftProjectionContext(selectedDate);
-      const of = " of " + overallTarget.toLocaleString() + " units";
-      if (shift.isHistorical || shift.complete) projectionDetail = "Plan: " + Math.round(overallActual).toLocaleString() + of + " (" + overall.percent + "%)";
-      else if (shift.elapsedMinutes >= UPLH_PACE_MIN_MINUTES && shift.fraction > 0) {
-        const projectedUnits = overallActual / shift.fraction;
-        projectionDetail = "Plan: ~" + Math.round(projectedUnits).toLocaleString() + of + " by 3:30 PM (" + Math.round(projectedUnits / overallTarget * 100) + "%)";
-      }
+    } else if (paced.length > 1) {
+      const low = paced.reduce((a, x) => (x.pace.pct < a.pace.pct ? x : a));
+      projectionDetail = "Lowest: " + low.name + " " + low.pace.pct + "%";
     }
 
     let attainmentStatus = "building";
     if (projectedEndAttainment !== null) {
       attainmentStatus = "on_target";
-      if (projectedEndAttainment < 80) attainmentStatus = "critical";
-      else if (projectedEndAttainment < 100) attainmentStatus = "at_risk";
+      if (projectedEndAttainment < PACE_AMBER) attainmentStatus = "critical";
+      else if (projectedEndAttainment < PACE_GREEN) attainmentStatus = "at_risk";
     }
     return {
       attainment: { percent: projectedEndAttainment, caption: projectionCaption, detail: projectionDetail },
@@ -621,7 +657,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   function renderTopKpis(departments) {
     const kpis = calculateDashboardKpis(departments);
     const isBuilding = kpis.attainmentStatus === "building";
-    const attColor = isBuilding ? "text-slate-500" : kpis.attainmentStatus === "on_target" ? "text-green-600" : kpis.attainmentStatus === "at_risk" ? "text-amber-500" : "text-red-600";
+    const attColor = isBuilding ? "text-slate-500" : kpis.attainmentStatus === "on_target" ? "text-green-600" : kpis.attainmentStatus === "at_risk" ? "text-amber-600" : "text-red-600";
     const attBg = isBuilding ? "bg-slate-100 text-slate-600 border-slate-200" : kpis.attainmentStatus === "on_target" ? "bg-green-100 text-green-700 border-green-200" : kpis.attainmentStatus === "at_risk" ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-red-100 text-red-700 border-red-200";
     const projectedValue = kpis.attainment.percent === null ? '<span class="text-2xl xl:text-3xl">N/A</span>' : kpis.attainment.percent + '<span class="text-lg xl:text-xl ml-0.5 opacity-70">%</span>';
     const overallAvailable = Number.isFinite(kpis.overall.percent) && Number.isFinite(kpis.overall.actual) && Number.isFinite(kpis.overall.target);
@@ -694,7 +730,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         <div class="kpi2-text"><div class="kpi2-title">Plant to goal</div><div class="kpi2-sub">${escapeHtml(caption)}</div>${kpis.attainment.detail ? `<div class="kpi2-sub">${escapeHtml(kpis.attainment.detail)}</div>` : ""}</div>
       </div>
       <div class="kpi2">
-        <div class="kpi2-num metric-num ${short ? "text-red-500" : "text-green-600"}">${kpis.employees.present}<span class="kpi2-of">/${kpis.employees.expected}</span></div>
+        <div class="kpi2-num metric-num ${short ? "text-red-500" : "text-green-600"}">${Number(kpis.employees.present) || 0}<span class="kpi2-of">/${Number(kpis.employees.expected) || 0}</span></div>
         <div class="kpi2-text"><div class="kpi2-title">Active personnel</div><div class="kpi2-sub">Present / expected</div></div>
       </div>
       <div class="kpi2 kpi2-dark">
@@ -712,10 +748,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (v <= 75) return "#F59E0B";
     return "#16A34A";
   }
-  // Pace is already time-adjusted, so it is judged like the UPLH bar: 100%+ on goal.
+  // Pace is already time-adjusted: green from PACE_GREEN, amber from PACE_AMBER, red below.
   function paceStoplightColor(v) {
-    if (v < 80) return "#DC2626";
-    if (v < 100) return "#F59E0B";
+    if (v < PACE_AMBER) return "#DC2626";
+    if (v < PACE_GREEN) return "#F59E0B";
     return "#16A34A";
   }
   function progressRing(value, size, colorFn) {
@@ -725,7 +761,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const cx = size / 2;
     const circ = 2 * Math.PI * r;
     const dash = circ * pct / 100;
-    const color = value === null ? "none" : (colorFn || attStoplightColor)(value);
+    // A zero-length arc with round caps still paints a dot, so 0 (and "--") draws no arc.
+    const color = value === null || pct <= 0 ? "none" : (colorFn || attStoplightColor)(value);
     const fontSize = LAYOUT_V2 ? Math.round(size / 4.2) : size >= 56 ? 15 : 13;
     return `
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="flex-shrink-0 -rotate-90" style="transform:rotate(-90deg)">
@@ -748,8 +785,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         </div>
       </div>`;
     // Labels are fixed markup; the <br> keeps them two short lines beside the ring.
-    const dayCell = cell(data.attainment, "DAILY<br>ATT.", "", null, !pace);
-    const weekCell = pace ? cell(pace.pct, "TO UPLH<br>GOAL", pace.sub, paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
+    // DAILY ATT. climbs all day, so a stoplight would paint every morning red; it is a
+    // neutral progress ring and the TO UPLH GOAL ring carries the status color.
+    const dayCell = cell(data.attainment, "DAILY<br>ATT.", "", pace ? () => "#475569" : null, !pace);
+    // A pace from a save over 2 h old is shown grey: it says where they were, not where they are.
+    const weekCell = pace ? cell(pace.pct, "TO UPLH<br>GOAL", pace.sub, pace.stale ? () => "#94A3B8" : paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
     const divider = hasWeek ? `<div class="w-px self-stretch bg-slate-200 mx-1 my-1"></div>` : "";
     return `
       <div class="mb-6 px-1 shrink-0">
@@ -761,14 +801,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   }
   function renderDeptCard(data) {
     try {
-      const now = plantNow();
-      const shiftStart = new Date(now);
-      shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
-      const elapsedMinutes = Math.max(0, Math.floor((now - shiftStart) / 6e4));
-      const engine = new AlertEngine(data, elapsedMinutes);
+      const engine = new AlertEngine(data, 0);
       const diagnosis = engine.diagnose();
       let topBorderClass = "border-t-slate-200";
-      if (diagnosis.level === 1) topBorderClass = "border-t-green-500";
+      if (diagnosis.level === 1) topBorderClass = diagnosis.tone === "neutral" ? "border-t-slate-200" : "border-t-green-500";
       if (diagnosis.level === 2) topBorderClass = "border-t-amber-400";
       if (diagnosis.level === 3) topBorderClass = "border-t-orange-500";
       if (diagnosis.level === 4) topBorderClass = "border-t-red-600 " + diagnosis.animate;
@@ -789,17 +825,21 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         const uplhNum = engine.uplhCurrent;
         const goalNum = engine.uplhGoal;
         const uplhPct = goalNum > 0 ? Math.min(100, uplhNum / goalNum * 100) : 0;
-        const isUplhGood = uplhNum >= goalNum;
-        const isUplhOk = uplhPct >= 80 && !isUplhGood;
-        const neutral = !!data.placeholder;
-        const blockBg = neutral || isUplhGood ? "bg-slate-50 border-slate-200" : isUplhOk ? "bg-amber-50 border-amber-200" : "bg-orange-50 border-orange-200";
-        const textColor = neutral ? "text-slate-400" : isUplhGood ? "text-tarter-navy" : isUplhOk ? "text-amber-700" : "text-orange-700";
-        const labelColor = neutral || isUplhGood ? "text-slate-500" : isUplhOk ? "text-amber-700" : "text-orange-700";
-        const barBg = isUplhGood ? "bg-green-500" : isUplhOk ? "bg-amber-400" : "bg-orange-500";
+        // Colored by the department status (time-adjusted pace), not by the raw full-day
+        // UPLH, so an on-pace crew doesn't look like it is failing at 8 AM.
+        const tone = data.placeholder ? "neutral" : diagnosis.paceTone || diagnosis.tone;
+        const toneCls = {
+          neutral: ["bg-slate-50 border-slate-200", "text-slate-400", "text-slate-500", "bg-slate-300"],
+          green: ["bg-slate-50 border-slate-200", "text-tarter-navy", "text-slate-500", "bg-green-500"],
+          amber: ["bg-amber-50 border-amber-200", "text-amber-700", "text-amber-700", "bg-amber-400"],
+          orange: ["bg-orange-50 border-orange-200", "text-orange-700", "text-orange-700", "bg-orange-500"],
+          red: ["bg-red-50 border-red-200", "text-red-700", "text-red-700", "bg-red-600"]
+        }[tone] || ["bg-slate-50 border-slate-200", "text-tarter-navy", "text-slate-500", "bg-green-500"];
+        const [blockBg, textColor, labelColor, barBg] = toneCls;
         heroHtml = `
         <div class="${blockBg} border rounded-xl p-4 mb-5 relative overflow-hidden shrink-0">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-[10px] xl:text-xs font-bold ${labelColor} tracking-widest uppercase">REAL TIME</span>
+            <span class="text-[10px] xl:text-xs font-bold ${labelColor} tracking-widest uppercase">UPLH TODAY</span>
           </div>
           <div class="flex items-end gap-2 mb-3 flex-wrap">
             <div class="text-4xl 2xl:text-5xl font-black ${textColor} metric-num leading-none">${formatNumberUI(uplhNum)}</div>
@@ -940,8 +980,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
             <div class="dept-name font-black text-tarter-navy tracking-tight uppercase truncate">${escapeHtml(data.name)}</div>
             <div class="card-subrow">
               <div class="card-pill flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg shadow-inner shrink-0">
-                <span class="text-slate-500 shrink-0" aria-hidden="true">${data.headline.icon || "\u{1F464}"}</span>
-                <span class="font-black ${personnelColor} metric-num shrink-0">${data.headline.active}/${data.headline.total}</span>
+                <span class="text-slate-500 shrink-0" aria-hidden="true">${escapeHtml(data.headline.icon || "\u{1F464}")}</span>
+                <span class="font-black ${personnelColor} metric-num shrink-0">${data.headline.active === null || data.headline.active === void 0 ? "--" : Number(data.headline.active)}/${Number(data.headline.total) || 0}</span>
               </div>
               ${renderFreshness(data.id)}
             </div>
@@ -953,8 +993,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         </div>
 
         <div class="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 mb-5 inline-flex self-start shadow-inner shrink-0 max-w-full">
-          <span class="text-slate-500 text-xs xl:text-sm shrink-0" aria-hidden="true">${data.headline.icon || "\u{1F464}"}</span>
-          <span class="text-sm xl:text-base font-black ${personnelColor} metric-num shrink-0">${data.headline.active}/${data.headline.total}</span>
+          <span class="text-slate-500 text-xs xl:text-sm shrink-0" aria-hidden="true">${escapeHtml(data.headline.icon || "\u{1F464}")}</span>
+          <span class="text-sm xl:text-base font-black ${personnelColor} metric-num shrink-0">${data.headline.active === null || data.headline.active === void 0 ? "--" : Number(data.headline.active)}/${Number(data.headline.total) || 0}</span>
           <span class="text-[8px] xl:text-[9px] font-bold text-slate-500 tracking-widest uppercase leading-tight ml-1 truncate">${escapeHtml(data.headline.label)}</span>
         </div>`}
 
@@ -1048,10 +1088,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const days = safetyDays(safety);
     if (days === null && !(safety && safety.topic)) return "";
     return `
-    <div class="safety-tile">
+    <div class="safety-tile${days !== null && days < 7 ? " safety-alert" : ""}">
       <div class="safety-days metric-num">${days === null ? "\u2013" : days.toLocaleString("en-US")}</div>
       <div class="safety-label">Days without<br>incidents</div>
-      ${safety && safety.topic ? `<div class="safety-topic"><span class="safety-tag">TODAY'S TOPIC</span><span class="safety-text">${escapeHtml(safety.topic)}</span></div>` : `<div class="safety-icon" aria-hidden="true">\u{1F9BA}</div>`}
+      ${safety && safety.topic ? `<div class="safety-topic"><span class="safety-tag">TODAY'S TOPIC</span><span class="safety-text">${escapeHtml(safety.topic)}</span></div>` : ""}
     </div>`;
   }
   // Loading strip: real numbers once the loading workbook exists; until then the
@@ -1103,19 +1143,17 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   }
   function renderFooterAlert(departments) {
     departments = departments.filter((d) => !isDeptDown(d));
-    const now = plantNow();
-    const shiftStart = new Date(now);
-    shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
-    const elapsedMinutes = Math.max(0, Math.floor((now - shiftStart) / 6e4));
     let highestAlert = null;
     let criticalCount = 0;
+    // Worst department first: highest level, then most people missing, then lowest pace.
+    const badness = (a) => [a.level, a.missing || 0, -(a.pacePct === null || a.pacePct === undefined ? 999 : a.pacePct)];
+    const worse = (a, b) => { const x = badness(a), y = badness(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
     departments.forEach((d) => {
-      const engine = new AlertEngine(d, elapsedMinutes);
+      const engine = new AlertEngine(d, 0);
       const diagnosis = engine.diagnose();
       if (diagnosis.level >= 4) criticalCount++;
-      if (!highestAlert || diagnosis.level > highestAlert.level) {
-        highestAlert = { ...diagnosis, deptName: d.name };
-      }
+      const cand = { ...diagnosis, deptName: d.name, pacePct: engine.uplhPace ? engine.uplhPace.pct : null };
+      if (!highestAlert || worse(cand, highestAlert)) highestAlert = cand;
     });
     let alertText = '<svg class="w-5 h-5 text-green-500" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> PLANT OPERATING NORMALLY';
     let bg = "bg-green-100", color = "text-green-800 border border-green-200";
@@ -1226,6 +1264,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       }
       const n = Number(s);
       if (!Number.isNaN(n)) return n;
+      // Numbers typed as text: "1,250", "$1,200", "85%".
+      const cleaned = s.replace(/[\s\u00A0$,]/g, "");
+      const pct = /^(-?\d*\.?\d+)%$/.exec(cleaned);
+      if (pct) return parseFloat(pct[1]) / 100;
+      if (/^-?\d*\.?\d+$/.test(cleaned)) return parseFloat(cleaned);
       if (warnings) warnings.push('Expected a number but found text "' + cell.v + '" - ' + context);
       return null;
     }
@@ -1316,7 +1359,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
             fabIssueMap.set(issueKey, issue);
           }
         }
-        if (forecastN !== null) {
+        // TOTAL / SUBTOTAL / SCRAP rows are not parts: adding them would double the day.
+        if (forecastN !== null && !/^(SUB\s*)?TOTAL|^SCRAP/.test(partUpper)) {
           computedForecast += forecastN;
           computedActual += actualN !== null ? actualN : 0;
           rows++;
@@ -1331,7 +1375,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       }
     }
     if ((forecast === null || actual === null) && computedForecast > 0) {
-      if (sawDaily) warnings.push(opts.name + ": the DAILY row did not hold usable numbers - totalled the part rows instead.");
+      if (sawDaily && warnings) warnings.push(opts.name + ": the DAILY row did not hold usable numbers - totalled the part rows instead.");
       forecast = computedForecast;
       actual = computedActual;
     }
@@ -1379,9 +1423,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const b1 = getRawText(getCell(sheet, "B1")).toLowerCase();
     return a1.includes("uplh goal") || b1.includes("operator");
   }
+  // New format = dated day-blocks headed "UPLH Goal ...", found anywhere on the sheet, so a
+  // title row added above them doesn't silently switch to the old single-block reader.
   function isNewBlockFormat(sheet) {
     const a1 = getRawText(getCell(sheet, "A1")).toLowerCase();
-    return a1.includes("uplh goal");
+    return a1.includes("uplh goal") || findDateBlocks(sheet, /uplh\s*goal/i).length > 0;
   }
   function buildNewBlockFormat(sheet, selectedDateISO, warnings, opts) {
     const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
@@ -1395,9 +1441,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const dateBlocks = findDateBlocks(sheet, /uplh\s*goal/i);
     let block = blockForDate(dateBlocks, selectedDateISO);
     if (!block && dateBlocks.length) {
-      const weekBlocks = blocksThroughDate(dateBlocks, selectedDateISO);
-      block = weekBlocks.length ? weekBlocks[weekBlocks.length - 1] : null;
-      if (block) warnings.push(opts.name + ": no block dated " + selectedDateISO + " on this sheet - using " + block.iso + " instead.");
+      // Showing yesterday's block as today would be wrong on the TV with no hint, so the
+      // card reports the missing day instead.
+      warnings.push(opts.name + ": no block dated " + selectedDateISO + " on this sheet.");
+      return null;
     }
     if (!block) {
       // The fixed columns below are FAB's spacing. WELDING's blocks are spaced
@@ -1419,8 +1466,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const attainmentRaw = cellNumber(getCell(sheet, colOffset(blockStart, 2) + valueRow), warnings, opts.name + " scheduled adherence");
     const uplh = cellNumber(getCell(sheet, colOffset(blockStart, 3) + valueRow), warnings, opts.name + " UPLH");
     const headerText = cellText(getCell(sheet, blockStart + labelRow)) || "";
-    const m = UPLH_GOAL_TEXT_RE.exec(headerText);
-    const uplhGoal = m ? parseFloat(m[1]) : null;
+    const uplhGoal = parseUplhGoalText(headerText);
+    if (uplhGoal === null) warnings.push(opts.name + ': could not read the UPLH goal from "' + headerText + '".');
     const totals = readBlockTotals(sheet, block, range, opts, warnings);
     let forecast = totals.forecast, actual = totals.actual;
     const materialShortageParts = totals.shortages;
@@ -1474,11 +1521,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
+      headline: { icon: "\u{1F464}", active: present, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };
-    return { dept, workers: { active: present !== null ? present : 0, total: expected, down: present === 0 } };
+    return { dept, workers: { active: present, total: expected, down: present === 0 } };
   }
   function buildFabLegacy(sheet, sheetName, selectedDateISO, warnings) {
     const weekStart = weekMondayISO(selectedDateISO);
@@ -1587,8 +1634,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const attainmentRaw = cellNumber(getCell(sheet, colOffset(blockStart, 2) + "2"), warnings, "WELDING attainment");
     const uplh = cellNumber(getCell(sheet, colOffset(blockStart, 3) + "2"), warnings, "WELDING UPLH");
     const headerText = cellText(getCell(sheet, colOffset(blockStart, 3) + "1")) || "";
-    const m = UPLH_GOAL_TEXT_RE.exec(headerText);
-    const uplhGoal = m ? parseFloat(m[1]) : UPLH_GOAL_FALLBACK.welding;
+    const uplhGoal = parseUplhGoalText(headerText);
     let forecast = null, actual = null;
     const materialShortageParts = [];
     for (let r = range.s.r + 3; r <= range.e.r; r++) {
@@ -1634,7 +1680,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
+      headline: { icon: "\u{1F464}", active: present, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };
@@ -1738,7 +1784,13 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const pctToGoal = cellNumber(getCell(sheet, "O1"), warnings, "PAINT pct to goal");
     let totalsRow = null;
     let scheduled = null, actual = null, productionPct = null;
+    // The totals row is the one labelled TOTAL in column A; "the last row with anything in
+    // column E" is only the fallback, since a note typed below the totals would win it.
     for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      const rowNum = r + 1;
+      if (/^total\b/i.test((cellText(getCell(sheet, "A" + rowNum)) || "").trim()) && (cellNumber(getCell(sheet, "B" + rowNum), null, "") !== null || cellNumber(getCell(sheet, "Q" + rowNum), null, "") !== null)) totalsRow = rowNum;
+    }
+    if (!totalsRow) for (let r = range.s.r + 1; r <= range.e.r; r++) {
       const rowNum = r + 1;
       const cellE = getCell(sheet, "E" + rowNum);
       if (cellE && cellE.v !== void 0 && cellE.v !== null && cellE.v !== "") {
@@ -1752,9 +1804,14 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     } else {
       warnings.push("PAINT: could not find a totals row (column E never populated) - scheduled/produced totals unavailable.");
     }
+    // DAILY ATT. = painted / scheduled, like every other card.
     let attainmentPct = 0;
-    if (productionPct !== null) attainmentPct = Math.round(productionPct * 100);
-    else if (pctToGoal !== null) attainmentPct = Math.round(pctToGoal * 100);
+    if (scheduled > 0 && actual !== null) attainmentPct = Math.round(actual / scheduled * 100);
+    else if (productionPct !== null) attainmentPct = Math.round(productionPct * 100);
+    else if (pctToGoal !== null) {
+      attainmentPct = Math.round(pctToGoal * 100);
+      warnings.push("PAINT: no painted/scheduled totals - DAILY ATT. uses the sheet's % to goal (O1).");
+    }
     const NON_COLOR_LABELS = /* @__PURE__ */ new Set(["DOWNTIME", "DOWNTIME:", "SCRAP", "SCRAP:", "REASON", "REASON:", "TOTAL", "TOTAL:"]);
     const sectionScanLimit = totalsRow || range.e.r + 1;
     const sectionStarts = [];
@@ -1808,15 +1865,15 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         }
         if (aNorm === "" || aNorm === "REASON" || aNorm === "REASON:") continue;
         const fullText = (cellA + " " + (cellText(getCell(sheet, "B" + rowNum)) || "") + " " + (cellText(getCell(sheet, "C" + rowNum)) || "") + " " + (cellText(getCell(sheet, "Q" + rowNum)) || "")).trim();
-        const timeMatch = fullText.match(/(\d{1,2}):(\d{2})\s*(am|pm)?\s*-\s*(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-        if (timeMatch) {
-          const h1 = parseInt(timeMatch[1], 10), m1 = parseInt(timeMatch[2], 10);
-          const h2 = parseInt(timeMatch[4], 10), m2 = parseInt(timeMatch[5], 10);
-          const t1 = h1 * 60 + m1;
-          const t2 = h2 * 60 + m2;
-          let diff = t2 - t1;
-          if (diff < 0) diff += 12 * 60;
-          downtimeMins += diff;
+        // Every range on the row counts: "6:45–7:00", "9:10 - 9:40 and 1:00-1:20", "9:10am to 9:40am".
+        const ranges = Array.from(fullText.matchAll(/(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2}):(\d{2})\s*(am|pm)?/gi));
+        if (ranges.length) {
+          const toMin = (h, m, ap) => { h = parseInt(h, 10) % 12; if (ap && /pm/i.test(ap)) h += 12; else if (!ap && h < SHIFT_START_HOUR) h += 12; return h * 60 + parseInt(m, 10); };
+          for (const t of ranges) {
+            let diff = toMin(t[4], t[5], t[6] || t[3]) - toMin(t[1], t[2], t[3]);
+            if (diff < 0) diff += 12 * 60;
+            if (diff < 12 * 60) downtimeMins += diff;
+          }
           downtimeMessages.push(fullText);
         } else if (fullText.length > 3) {
           downtimeMessages.push(fullText);
@@ -1845,7 +1902,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
+      headline: { icon: "\u{1F464}", active: present, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0,
       currentColor
@@ -1867,12 +1924,12 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     }
     // Tanks stacks two rows of day-blocks (Mon-Wed on row 1, Thu-Fri on row 15), so the
     // day is found by its date under the "DATE" label rather than by a fixed map.
-    const tankBlocks = findDateBlocks(sheet, /^date$/i);
+    const tankBlocks = findDateBlocks(sheet, /^date:?$/i);
     let tankBlock = blockForDate(tankBlocks, selectedDateISO);
     if (!tankBlock && tankBlocks.length) {
-      const through = blocksThroughDate(tankBlocks, selectedDateISO);
-      tankBlock = through.length ? through[through.length - 1] : null;
-      if (tankBlock) warnings.push("TANKS: no block dated " + selectedDateISO + " on this sheet - using " + tankBlock.iso + " instead.");
+      // Same rule as FAB/WELDING: never show another day's block as today.
+      warnings.push("TANKS: no block dated " + selectedDateISO + " on this sheet.");
+      return null;
     }
     if (!tankBlock) {
       const layout = TANK_DAY_LAYOUT[weekday];
@@ -1881,8 +1938,19 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     }
     const headerRow = tankBlock.labelRow, colStart = tankBlock.col;
     const valueRow = headerRow + 1;
-    const scheduledProdRow = headerRow + 10;
-    const totalProdRow = headerRow + 11;
+    // The SCHEDULED PROD. / TOTAL PROD. rows are found by their labels, so an added part
+    // row moves them down instead of reading the wrong cells. Fixed offsets are the fallback.
+    let scheduledProdRow = headerRow + 10;
+    let totalProdRow = headerRow + 11;
+    let foundSched = false, foundTotal = false;
+    for (let r = headerRow + 3; r <= headerRow + 25; r++) {
+      for (let off = 0; off <= 5; off++) {
+        const t = getRawText(getCell(sheet, colOffset(colStart, off) + r)).trim();
+        if (!foundSched && /^scheduled\s*prod/i.test(t)) { scheduledProdRow = r; foundSched = true; }
+        else if (!foundTotal && /^total\s*prod/i.test(t)) { totalProdRow = r; foundTotal = true; }
+      }
+    }
+    if (!foundSched || !foundTotal) warnings.push("TANKS: SCHEDULED PROD. / TOTAL PROD. labels not found - using the default rows.");
     expectHeaderNear(sheet, colOffset(colStart, 1) + headerRow, ["employe", "present", "worker"], warnings, "TANKS headcount header");
     const present = cellNumber(getCell(sheet, colOffset(colStart, 1) + valueRow), warnings, "TANKS employee count");
     const attainmentRaw = cellNumber(getCell(sheet, colOffset(colStart, 2) + valueRow), warnings, "TANKS attainment");
@@ -1893,7 +1961,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     let calcTankSched = 0;
     let calcTankProd = 0;
     let currentPart = "UNKNOWN";
-    for (let r = headerRow + 3; r < headerRow + 10; r++) {
+    for (let r = headerRow + 3; r < Math.min(scheduledProdRow, totalProdRow); r++) {
       const partName = cellText(getCell(sheet, colOffset(colStart, 0) + r));
       if (!partName || partName.trim().toUpperCase().startsWith("SCRAP") || partName.trim().toUpperCase().includes("TOTAL")) continue;
       const sVal = cellNumber(getCell(sheet, colOffset(colStart, 1) + r), [], "");
@@ -1917,19 +1985,22 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       weekPct = Math.round(weekProduced / weekScheduled * 100);
     }
     const expected = EXPECTED_HEADCOUNT.tanks;
-    const attainmentPct = Math.round((attainmentRaw || 0) * 100);
+    // DAILY ATT. means the same on every card: production / scheduled. The sheet's own
+    // cell is only the fallback when the totals are missing.
+    const attainmentPct = scheduled > 0 && production !== null ? Math.round(production / scheduled * 100) : Math.round((attainmentRaw || 0) * 100);
     if (currentPart === "UNKNOWN" && (scheduled > 0 && production >= scheduled || attainmentPct >= 100)) {
       currentPart = "\u2713 COMPLETE";
     }
     const notes = [];
     const tankIssueTexts = [];
     const tankRange = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
-    for (let r = headerRow + 10; r <= Math.min(headerRow + 13, tankRange.e.r + 1); r++) {
+    const notesFrom = Math.min(scheduledProdRow, totalProdRow);
+    for (let r = notesFrom; r <= Math.min(notesFrom + 3, tankRange.e.r + 1); r++) {
       for (let offset = 0; offset <= 5; offset++) {
         const raw = getRawText(getCell(sheet, colOffset(colStart, offset) + r)).trim();
-        if (!raw || /^(?:DOWNTIME|REASON|SCHEDULED PROD\.?|TOTAL PROD\.?)$/i.test(raw)) continue;
+        if (!raw || /^(?:DOWNTIME|REASON|SCHEDULED PROD\.?|TOTAL PROD\.?):?$/i.test(raw)) continue;
         if (!/[A-Za-z0-9]/.test(raw)) continue;
-        if (/^-?\d+(?:\.\d+)?%?$/.test(raw) || ERROR_STRINGS.has(raw.toUpperCase())) continue;
+        if (/^-?\d+(?:\.\d+)?%?$/.test(raw) || ERROR_STRINGS.has(raw.toUpperCase()) || /^#[A-Z\/0!?_]+[!?]?$/.test(raw)) continue;
         if (tankIssueTexts.indexOf(raw) === -1) tankIssueTexts.push(raw);
       }
     }
@@ -1949,7 +2020,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       attainment: attainmentPct,
       attainmentLabel: "DAILY ATTAINMENT",
       weekAttainment: weekPct !== null ? weekPct : void 0,
-      headline: { icon: "\u{1F464}", active: present !== null ? present : 0, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
+      headline: { icon: "\u{1F464}", active: present, total: expected, label: "PRESENT / EXPECTED", countsAsPersonnel: true, down: present === 0 },
       stats,
       notes: notes.length ? notes : void 0
     };
@@ -2019,9 +2090,20 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     return found.name;
   }
   /** Which department a file belongs to, read off its name. */
+  // Department by the file's own name (not its folder). A name that fits two departments
+  // ("Tank Paint Colors.xlsx") or looks like a copy / backup / OneDrive conflict copy
+  // belongs to none, so it can't replace the real workbook just by being newer.
+  var COPY_FILE_RE = /(^|[\s_-])(copy|backup|bak|old)([\s_.-]|$)|^copy of |\(\d+\)\.\w+$|-(desktop|laptop|pc)-[a-z0-9]+/i;
+  var ARCHIVE_DIR_RE = /(^|\/)(archive|archived|old|backup|backups)[^/]*\//i;
+  function deptsForFileName(fileName) {
+    const path = String(fileName || "");
+    const base = path.split("/").pop();
+    if (ARCHIVE_DIR_RE.test(path) || COPY_FILE_RE.test(base)) return [];
+    return DEPT_SOURCES.filter((d) => d.fileMatch.test(base));
+  }
   function deptForFileName(fileName) {
-    const name = String(fileName || "");
-    return DEPT_SOURCES.find((d) => d.fileMatch.test(name)) || null;
+    const hits = deptsForFileName(fileName);
+    return hits.length === 1 ? hits[0] : null;
   }
   /**
    * The tab for a day. Tabs are named only with a date ("8.5.2026"), so an exact
@@ -2045,7 +2127,15 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const names = XLSX.read(buffer, { type: "array", bookSheets: true }).SheetNames || [];
     const wantISO = source.cadence === "day" ? selectedDateISO : weekMondayISO(selectedDateISO);
     const wanted = [];
-    const mainName = sheetNameForDate(names, wantISO);
+    let mainName = sheetNameForDate(names, wantISO);
+    // Weekly tab not named exactly for Monday (holiday Monday, tab dated the Sunday or the
+    // first workday): take the latest tab dated from that Sunday up to the selected day.
+    if (!mainName && source.cadence === "week") {
+      const from = addDaysISO(weekMondayISO(selectedDateISO), -1);
+      const near = names.map((n) => ({ n, iso: parseSheetDateISO(n) })).filter((x) => x.iso && compareISO(x.iso, from) >= 0 && compareISO(x.iso, selectedDateISO) <= 0);
+      near.sort((a, b) => compareISO(a.iso, b.iso));
+      if (near.length) mainName = near[near.length - 1].n;
+    }
     if (mainName) wanted.push(mainName);
     // Paint's week bar needs Monday through today, each on its own tab.
     const weekNames = {};
@@ -2148,7 +2238,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const missing = [];
     for (const source of DEPT_SOURCES) {
       if (!departments.some((d) => d.id === source.id)) {
-        const specific = warnings.find((w) => w.indexOf(source.label + ":") === 0);
+        const mine = warnings.filter((w) => w.indexOf(source.label + ":") === 0);
+        const specific = mine.find((w) => /no (tab named|block dated)/.test(w)) || mine[0];
         const hadFile = files.some((f) => { const d = deptForFileName(f.fileName); return d && d.id === source.id; });
         warnings.push(source.label + ": no data. Expected a file whose name contains \"" + source.fileMatch.source + "\" in the connected folder.");
         missing.push({ id: source.id, name: source.label, reason: missingReason(specific, hadFile) });
@@ -2226,9 +2317,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   var MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
   /** Which sign-off workbook covers a given day: the name carries the month and year. */
   function loadingFileFor(cands, iso) {
+    // "Oct", "Sept", "September" all count for the month.
     const month = MONTH_NAMES[Number(iso.slice(5, 7)) - 1];
     const year = iso.slice(0, 4);
-    return cands.find((c) => c.name.toLowerCase().indexOf(month) !== -1 && c.name.indexOf(year) !== -1) || null;
+    const monthRe = new RegExp("(^|[^a-z])" + month.slice(0, 3) + "[a-z]*([^a-z]|$)", "i");
+    return cands.find((c) => monthRe.test(c.name.split("/").pop()) && c.name.indexOf(year) !== -1) || null;
   }
   /** Short products written in COMMENTS, e.g. "SO1347500 EWBL66-2,GUT22-1." -> EWBL66 x2, GUT22 x1. */
   function parseShortProducts(text) {
@@ -2295,8 +2388,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   }
   /** Monday through the selected day: trailers, pieces, shorts and the short products. */
   function loadingFor(books, dateISO) {
-    const all = [];
-    for (const b of books || []) if (b && Array.isArray(b.days)) all.push(...b.days);
+    // A day present in two workbooks (end of one month's file, start of the next) counts once.
+    const byDay = new Map();
+    for (const b of books || []) if (b && Array.isArray(b.days)) for (const d of b.days) if (d && d.iso && !byDay.has(d.iso)) byDay.set(d.iso, d);
+    const all = Array.from(byDay.values());
     if (!all.length) return null;
     const monday = weekMondayISO(dateISO);
     const friday = addDaysISO(monday, 4);
@@ -2333,6 +2428,11 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   function missingReason(warning, hadFile) {
     const m = warning && /no tab named (\d{4})-(\d{2})-(\d{2})/.exec(warning);
     if (m) return "Tab " + Number(m[2]) + "." + Number(m[3]) + "." + m[1] + " missing in the Excel";
+    const b = warning && /no block dated (\d{4})-(\d{2})-(\d{2})/.exec(warning);
+    if (b) {
+      const day = new Date(Number(b[1]), Number(b[2]) - 1, Number(b[3])).toLocaleDateString("en-US", { weekday: "short" });
+      return "No " + day + " " + Number(b[2]) + "/" + Number(b[3]) + " block in the Excel";
+    }
     if (!hadFile) return "Excel file not found";
     return "Check the Excel sheet";
   }
@@ -2576,12 +2676,31 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     }, delay || 200);
   }
   function render() {
-    const departments = state.result ? state.result.departments : sampleDepartmentData;
+    // Sample numbers only on the source PC before it loads anything, or in ?preview=1. A
+    // TV with no data yet says so instead of showing realistic-looking demo numbers.
+    const waiting = !state.result && sync.mode === "url" && !LAYOUT_PREVIEW;
+    const departments = state.result ? state.result.departments : waiting ? [] : sampleDepartmentData;
     const warnings = state.result ? state.result.warnings : [];
     renderTopKpis(departments);
     renderDeptGrid(departments, state.result ? state.result.missing : null);
+    // Weekends the TVs show a plain "no shift" screen (Friday's numbers would only invite
+    // a wrong read); the source PC still sees everything.
+    const plantDay = plantNow().getDay();
+    const weekendScreen = !waiting && sync.mode === "url" && !LAYOUT_PREVIEW && (plantDay === 0 || plantDay === 6);
+    if (weekendScreen) {
+      const safety = renderSafetyTile(state.result ? state.result.safety : null);
+      document.getElementById("top-kpis").innerHTML = safety;
+      document.getElementById("top-kpis").style.gridTemplateColumns = safety ? "minmax(0, 1fr)" : "";
+      document.getElementById("dept-grid").innerHTML = `<div class="tv-waiting" style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center"><div style="font-size:72px;font-weight:900;letter-spacing:.06em;color:#013449">WEEKEND</div><div style="font-size:28px;font-weight:700;color:#64748b;margin-top:12px">No production shift \u00B7 back Monday ${SHIFT_START_HOUR}:00 AM</div></div>`;
+    }
+    if (waiting) {
+      document.getElementById("top-kpis").innerHTML = "";
+      const grid = document.getElementById("dept-grid");
+      grid.innerHTML = `<div class="tv-waiting" style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center"><div style="font-size:56px;font-weight:900;letter-spacing:.06em;color:#013449">WAITING FOR DATA</div><div style="font-size:24px;font-weight:700;color:#64748b;margin-top:12px">${sync.lastError ? "No connection to the server \u00B7 retrying" : "Connecting\u2026"}</div></div>`;
+    }
     renderDataDayBadge();
     renderLoadingBar();
+    if (weekendScreen || waiting) { const lb = document.getElementById("loading-bar"); if (lb) lb.style.display = "none"; }
     renderFooterAlert(departments);
     const dsLabel = document.getElementById("data-source-label");
     const uploadLabel = document.getElementById("upload-label-text");
@@ -2623,15 +2742,27 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     // on its own tells nobody which file was read or what was wrong with it.
     const failure = sync.lastError ? ["AUTO-SYNC: " + sync.lastError].concat(sync.diagnostic) : [];
     const sourceOffline = sync.mode === "url" && sync.sourceStale && sync.sourceHeartbeatAt;
-    const lastSeen = sourceOffline ? sync.sourceHeartbeatAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
+    const lastSeen = sourceOffline ? plantTimeText(sync.sourceHeartbeatAt) : "";
+    const feedDown = feedUnreachable();
     if (sourceOffline) {
       failure.unshift("SOURCE PC OFFLINE: no update since " + lastSeen + " — showing the last data it sent. Check that the PC with Connect Folder is on and its dashboard tab is open.");
     }
     const offlineBadge = document.getElementById("source-offline-badge");
+    const dataFrom = sync.sourceHeartbeatAt ? plantTimeText(sync.sourceHeartbeatAt) : sync.lastFeedOkAt ? plantTimeText(new Date(sync.lastFeedOkAt)) : "--:--";
+    const sourceError = sync.mode === "url" && state.result && typeof state.result.sourceError === "string" ? state.result.sourceError : "";
+    const tvAlert = feedDown ? "\u26A0 NO CONNECTION TO SERVER \xB7 DATA FROM " + dataFrom
+      : sourceOffline ? "\u26A0 SOURCE PC OFFLINE \xB7 DATA FROM " + lastSeen
+      : sourceError ? "\u26A0 " + sourceError.toUpperCase() : "";
     if (offlineBadge) {
-      offlineBadge.textContent = sourceOffline ? "⚠ SOURCE PC OFFLINE \xB7 DATA FROM " + lastSeen : "";
-      offlineBadge.classList.toggle("hidden", !sourceOffline);
-      offlineBadge.classList.toggle("flex", !!sourceOffline);
+      offlineBadge.textContent = tvAlert;
+      offlineBadge.classList.toggle("hidden", !tvAlert);
+      offlineBadge.classList.toggle("flex", !!tvAlert);
+    }
+    if (liveIndicator) {
+      const txt = liveIndicator.querySelector("span");
+      const dot = liveIndicator.querySelector("div");
+      if (txt) txt.textContent = feedDown ? "No connection" : sourceOffline ? "Source offline" : "System active";
+      if (dot) dot.style.background = tvAlert ? "#ef4444" : "";
     }
     const shown = failure.concat(warnings.slice(0, 3));
     const remaining = warnings.length - Math.min(warnings.length, 3);
@@ -2828,9 +2959,19 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const activeTvScale = applyTvScale(getRuntimeTvScale(snap));
     const bar = document.getElementById("control-bar");
     if (bar) bar.style.display = "none";
+    // TVs drop the footer (its alert repeated the cards). The offline / no-connection
+    // warning, the TV's one cue that the numbers are old, becomes a big fixed banner.
+    const footer = document.querySelector("footer");
+    const offline = document.getElementById("source-offline-badge");
+    if (offline) {
+      document.body.appendChild(offline);
+      offline.classList.add("tv-alert-banner");
+    }
+    if (footer) footer.style.display = "none";
     const li = document.getElementById("live-indicator");
     let tvLabel = null;
-    if (li && li.parentElement) {
+    // The TV MODE / NEXT CHECK chip is for troubleshooting only: &debug=1 shows it.
+    if (li && li.parentElement && /[?&]debug=1(&|$)/.test(location.search)) {
       const chip = document.createElement("div");
       chip.className = "flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full border border-white/20";
       tvLabel = document.createElement("span");
@@ -2841,7 +2982,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const dataStamp = () => {
       // On a shared-feed screen, "DATA" is when the source PC last confirmed its numbers.
       const when = sync.sourceHeartbeatAt || sync.lastOkAt || (snap.exportedAt ? new Date(snap.exportedAt) : null);
-      return when ? when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+      return when ? plantTimeText(when) : "--:--";
     };
     const paint = (tail) => {
       if (!tvLabel) return;
@@ -2895,7 +3036,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   // screens each cost one Vercel request per check; 30 s keeps ~10 TVs x 13 h x 22 days
   // (~345k requests/month) well inside the free 1M.
   var SOURCE_CHECK_MS = 5e3;
-  var VIEWER_CHECK_MS = 3e4;
+  var VIEWER_CHECK_MS = 15e3;
   var SYNC_LS = { url: "tarter-feed-url", interval: "tarter-feed-interval", name: "tarter-feed-name" };
   var IDB_NAME = "tarter-dashboard";
   var IDB_STORE = "handles";
@@ -3097,8 +3238,31 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   function applyWorkbookBuffer(buffer, sourceLabel) {
     return applyFileSet([{ fileName: sourceLabel || "workbook.xlsx", buffer }], sourceLabel);
   }
+  // TVs keep the last good feed in browser storage, so one that boots while the network
+  // or the server is down shows the last real numbers (with their time) instead of nothing.
+  var TV_LAST_GOOD_LS = "tarter-tv-last-good";
+  // The feed is public, so anything in it is untrusted: numbers must be numbers before
+  // they reach an HTML template (strings there are escaped at render time).
+  function sanitizeFeedResult(result) {
+    const num = (v) => { const n = Number(v); return v === null || v === void 0 || v === "" || !Number.isFinite(n) ? null : n; };
+    for (const d of Array.isArray(result.departments) ? result.departments : []) {
+      if (!d || typeof d !== "object") continue;
+      d.attainment = num(d.attainment) === null ? 0 : num(d.attainment);
+      if (d.weekAttainment !== void 0) d.weekAttainment = num(d.weekAttainment);
+      if (d.headline && typeof d.headline === "object") {
+        d.headline.active = num(d.headline.active);
+        d.headline.total = num(d.headline.total);
+        d.headline.icon = "\u{1F464}";
+      }
+      if (!Array.isArray(d.stats)) d.stats = [];
+      d.stats = d.stats.filter((x) => x && typeof x === "object").map((x) => ({ label: String(x.label || ""), tone: String(x.tone || "default"), value: typeof x.value === "number" ? x.value : String(x.value === null || x.value === void 0 ? "" : x.value) }));
+    }
+    return result;
+  }
   function applySnapshotResult(result, sourceLabel) {
+    sanitizeFeedResult(result);
     if (!Array.isArray(result.warnings)) result.warnings = [];
+    if (sync.mode === "url") lsSet(TV_LAST_GOOD_LS, JSON.stringify({ result, at: Date.now(), heartbeatAt: sync.sourceHeartbeatAt ? sync.sourceHeartbeatAt.toISOString() : null }));
     state.result = result;
     state.statusTone = "success";
     sync.fileLabel = sourceLabel || "";
@@ -3157,6 +3321,17 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
   // The source PC sends a heartbeat at least once a minute (PUBLISH_HEARTBEAT_MS); allow
   // for that, the edge cache and a throttled background tab before calling it offline.
   var SOURCE_STALE_MS = 18e4;
+  // A TV that can't reach the feed keeps its last numbers; after this long it says so.
+  var FEED_DOWN_MS = 15 * 6e4;
+  function feedUnreachable() {
+    if (sync.mode !== "url" || !sync.lastError) return false;
+    return Date.now() - (sync.lastFeedOkAt || PAGE_LOADED_AT) > FEED_DOWN_MS;
+  }
+  function plantTimeText(d) {
+    const opts = { hour: "2-digit", minute: "2-digit" };
+    if (plantTimeZone) opts.timeZone = plantTimeZone;
+    try { return d.toLocaleTimeString("en-US", opts); } catch (err) { return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }); }
+  }
   function noteSourceHeartbeat(payload) {
     const beat = payload && payload.heartbeatAt ? Date.parse(payload.heartbeatAt) : NaN;
     if (!Number.isFinite(beat)) {
@@ -3352,9 +3527,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     const chosen = [];
     const missing = [];
     for (const source of DEPT_SOURCES) {
-      const match = scan.candidates.filter((c) => source.fileMatch.test(c.name));
+      const match = scan.candidates.filter((c) => { const d = deptForFileName(c.name); return d && d.id === source.id; });
       if (match.length) chosen.push({ source, cand: match[0] });
       else missing.push(source.label);
+      if (match.length > 1) context.push(source.label + ": " + match.length + " files match (" + match.slice(0, 3).map((c) => c.name).join(" | ") + ") - using the newest, " + match[0].name + ".");
     }
     if (chosen.length === 0) {
       sync.diagnostic = ["No file name in that folder contains fab, weld, paint or tank."].concat(context);
@@ -3404,6 +3580,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     }
 
     const files = [];
+    let readFailed = false;
     for (const pick of chosen) {
       const fileSig = pick.cand.name + ":" + pick.cand.modified + ":" + pick.cand.file.size;
       const cached = force ? null : cachedParseFor(pick.cand.name, fileSig);
@@ -3411,7 +3588,13 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       try {
         files.push({ fileName: pick.cand.name, signature: fileSig, modifiedAt: pick.cand.modified, buffer: await pick.cand.file.arrayBuffer() });
       } catch (err) {
-        context.push("Could not read " + pick.cand.name + ": " + (err && err.message ? err.message : String(err)));
+        // OneDrive locks a file for a moment while it swaps in a new copy. Keep showing the
+        // last good parse of it and retry on the next check, instead of a NO DATA card
+        // that would stick until some other workbook changes.
+        readFailed = true;
+        const prev = sync.parsedCache[pick.cand.name];
+        if (prev && prev.date === syncTargetDateISO()) files.push({ fileName: pick.cand.name, signature: prev.signature, cached: prev, modifiedAt: pick.cand.modified });
+        context.push("Could not read " + pick.cand.name + ": " + (err && err.message ? err.message : String(err)) + " - retrying.");
       }
     }
     if (files.length === 0) {
@@ -3426,7 +3609,8 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     }
     if (missing.length) sync.note = "No file for " + missing.join(", ");
     else sync.note = "";
-    sync.signature = signature;
+    // A file that couldn't be read leaves the signature unset, so the next check retries it.
+    sync.signature = readFailed ? null : signature;
     return true;
   }
 
@@ -3435,6 +3619,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (sync.mode === "off") { sync.nextAt = 0; return; }
     // Count the wait from when the last check started. Otherwise a 10 s parse turns a
     // 30 s setting into 40 s, and a change can sit unseen for most of a minute.
+    sync.intervalMs = readIntervalMs();
     const wait = Math.max(2e3, sync.intervalMs - (elapsedMs || 0));
     sync.nextAt = Date.now() + wait;
     sync.timer = setTimeout(() => { syncNow(false); }, wait);
@@ -3468,7 +3653,13 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     if (Date.now() - PAGE_LOADED_AT < 2 * 36e5) return;
     try {
       const res = await fetchWithTimeout(location.pathname + "?_alive=" + Date.now(), { cache: "no-store" }, 15e3);
-      if (res.ok) location.reload();
+      if (!res.ok) return;
+      // The page alone isn't enough: a TV that reloads while the feed is down comes back
+      // with nothing to show, so the feed must answer with departments too.
+      const feed = await fetchWithTimeout(sync.url + (sync.url.indexOf("?") === -1 ? "?" : "&") + "_alive=" + Date.now(), { cache: "no-store" }, 15e3);
+      if (!feed.ok) return;
+      const body = await feed.json();
+      if (body && Array.isArray(body.departments) && body.departments.length) location.reload();
     } catch (err) {
       // Site unreachable right now: keep showing the last data and try next minute.
     }
@@ -3495,10 +3686,19 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         publishSnapshot(state.result, sync.fileLabel);
       } else {
         await pullFromUrl(forceParse);
+        sync.lastFeedOkAt = Date.now();
       }
+      // A good check clears an earlier blip even when nothing changed.
+      if (sync.lastError) { sync.lastError = null; render(); }
     } catch (err) {
       sync.lastError = err && err.message ? err.message : String(err);
       console.error("Auto-sync failed:", err, sync.diagnostic);
+      // The source PC keeps its heartbeat going with the reason it can't read the Excel,
+      // so the TVs say what to fix instead of "the PC is off".
+      if (sync.mode === "folder" && state.result) {
+        const reason = sync.needsPermission ? "Click Reconnect Folder on the source PC" : "Source PC can't read the Excel files: " + String(sync.lastError).slice(0, 90);
+        publishSnapshot(Object.assign({}, state.result, { sourceError: reason }), sync.fileLabel);
+      }
       if (!state.result) state.statusTone = "error";
       render();
     }
@@ -3508,8 +3708,21 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     updateSyncUi();
   }
 
+  // Fast checks only around the shift (Mon-Fri 4:30 AM - 4:00 PM plant time). Nights and
+  // weekends nothing changes, so TVs check every 5 min and the source PC every minute;
+  // that keeps ~10 always-on TVs well inside Vercel's monthly request allowance.
+  var SOURCE_IDLE_CHECK_MS = 6e4;
+  var VIEWER_IDLE_CHECK_MS = 3e5;
+  function inActiveHours() {
+    const now = plantNow();
+    const day = now.getDay();
+    const min = now.getHours() * 60 + now.getMinutes();
+    return day >= 1 && day <= 5 && min >= SHIFT_START_HOUR * 60 - 30 && min < 16 * 60;
+  }
   function readIntervalMs() {
-    return sync.mode === "folder" ? SOURCE_CHECK_MS : VIEWER_CHECK_MS;
+    const active = inActiveHours();
+    if (sync.mode === "folder") return active ? SOURCE_CHECK_MS : SOURCE_IDLE_CHECK_MS;
+    return active ? VIEWER_CHECK_MS : VIEWER_IDLE_CHECK_MS;
   }
   function startUrlSync(url, opts) {
     const clean = String(url || "").trim();
@@ -3521,6 +3734,20 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
     sync.lastError = null;
     sync.note = "";
     sync.intervalMs = readIntervalMs();
+    if (!state.result) {
+      try {
+        const cached = JSON.parse(lsGet(TV_LAST_GOOD_LS) || "null");
+        if (cached && cached.result && Array.isArray(cached.result.departments)) {
+          state.result = sanitizeFeedResult(cached.result);
+          if (cached.result.timeZone && !plantTzFromUrl) setPlantTimeZone(cached.result.timeZone);
+          sync.lastFeedOkAt = cached.at || null;
+          if (cached.heartbeatAt) sync.sourceHeartbeatAt = new Date(cached.heartbeatAt);
+          render();
+        }
+      } catch (err) {
+        // Unreadable cache: start empty and wait for the feed.
+      }
+    }
     if (!opts || opts.remember !== false) lsSet(SYNC_LS.url, clean);
     const input = document.getElementById("sync-url-input");
     if (input) input.value = clean;
@@ -3634,6 +3861,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
       missing: result.missing || [],
       safety: result.safety || null,
       loading: result.loading || null,
+      sourceError: typeof result.sourceError === "string" ? result.sourceError : null,
       timeZone: plantTimeZone || deviceTimeZone()
     };
   }
