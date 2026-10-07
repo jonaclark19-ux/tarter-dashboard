@@ -64,7 +64,7 @@ check(db.row && Array.isArray(db.row.data.missing) && db.row.data.missing[0].id 
 const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, timezoneId: "America/New_York" });
 const tv = await ctx.newPage();
 tv.on("pageerror", (e) => errors.push("tv: " + e.message));
-await tv.goto(base + "/?src=/api/feed-snapshot&tv=1&screen=Test");
+await tv.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&screen=Test");
 await tv.waitForFunction(() => document.getElementById("dept-grid").children.length === 4, null, { timeout: 15000 }).catch(() => {});
 await tv.waitForTimeout(1500); // the header clock ticks once a second
 const view = await tv.evaluate(() => {
@@ -103,7 +103,7 @@ fresh.sources = [
   { id: "welding", label: "WELDING", fileName: "w.xlsx", sheetName: "x", savedAt: new Date(Date.now() - 5 * 6e4).toISOString() }
 ];
 await post("/api/publish", { result: fresh, changedAt: new Date().toISOString() });
-await tv2.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await tv2.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1");
 await tv2.waitForFunction(() => /EXCEL SAVED/i.test(document.getElementById("dept-grid").textContent), null, { timeout: 15000 }).catch(() => {});
 const cardsText = await tv2.evaluate(() => Array.from(document.getElementById("dept-grid").children).map((c) => c.textContent.replace(/\s+/g, " ")));
 check(/No (Excel )?update (for )?2H 10M/i.test(cardsText[0] || ""), "FAB card flags 2h10m without an Excel save (" + zone + ")");
@@ -121,7 +121,7 @@ const badge = await tv2.evaluate(() => document.getElementById("data-day-badge")
 check(/Showing Fri, Sep 25/i.test(badge), "header says which day is shown: " + badge);
 await tv2.screenshot({ path: "shots/freshness.png" });
 
-const xl = await src.evaluate(async () => { await window.__t.ensureXlsx(); await window.__t.ensureXlsx(); return typeof XLSX !== "undefined" && typeof XLSX.read === "function" && document.querySelectorAll("script[src$='vendor/xlsx.js']").length; });
+const xl = await src.evaluate(async () => { await window.__t.ensureXlsx(); await window.__t.ensureXlsx(); return typeof XLSX !== "undefined" && typeof XLSX.read === "function" && document.querySelectorAll("script[src*='vendor/xlsx.js']").length; });
 check(xl === 1, "source loads the Excel reader once on demand");
 
 // Real workbook through the upload path on a fresh page (reader not loaded yet)

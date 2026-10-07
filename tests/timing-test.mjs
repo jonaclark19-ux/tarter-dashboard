@@ -16,7 +16,7 @@ check(db.change_log.length === 0, "first-after-load publish is not logged");
 
 const browser = await chromium.launch();
 const tv = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-await tv.goto(base + "/?src=/api/feed-snapshot&tv=1&screen=Lobby");
+await tv.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&debug=1&screen=Lobby");
 await tv.waitForFunction(() => /TV MODE/.test(document.body.textContent), null, { timeout: 15000 });
 await tv.waitForTimeout(1500);
 check(db.change_seen.length === 0, "TV does not ack on initial load");
@@ -32,7 +32,7 @@ const r = await src.evaluate(async (fx) => {
   t.sync.sourceNewestFile = "Daily Production Weld.xlsx";
   await t.publishSnapshot(fx, "x");                 // first after load
   const first = t.publishState.sentOnce;
-  const fx2 = JSON.parse(JSON.stringify(fx)); fx2.selectedDate = "2099-01-01";
+  const fx2 = JSON.parse(JSON.stringify(fx)); fx2.departments[0].stats[0].value = 999;
   await t.publishSnapshot(fx2, "x");                // real change
   await t.publishSnapshot(fx2, "x");                // no change, inside heartbeat window: skipped
   return { first, status: t.sync.publishStatus };
@@ -55,11 +55,16 @@ check((await post("/api/seen", { changedAt: new Date().toISOString() })).status 
 
 // 4b. a reload whose first send carries different numbers IS a real change
 db.row.data = Object.fromEntries(Object.entries(db.row.data).reverse()); // jsonb key order
-await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-01-01" }), changedAt: new Date(Date.now() - 1000).toISOString(), changed: true, firstAfterLoad: true });
+const same = JSON.parse(JSON.stringify(fixture)); same.departments[0].stats[0].value = 999;
+await post("/api/publish", { result: same, changedAt: new Date(Date.now() - 1000).toISOString(), changed: true, firstAfterLoad: true });
 check(db.change_log.length === 1, "reload with same numbers (reordered keys) not logged");
-await post("/api/publish", { result: Object.assign({}, fixture, { selectedDate: "2099-02-02" }), changedAt: new Date().toISOString(), changed: true, firstAfterLoad: true });
+const moved = JSON.parse(JSON.stringify(same)); moved.departments[0].stats[0].value = 1001;
+await post("/api/publish", { result: moved, changedAt: new Date().toISOString(), changed: true, firstAfterLoad: true });
 check(db.change_log.length === 2, "reload with new numbers is logged");
 db.change_log.pop();
+// a new day (midnight rollover, date picked by hand) is not an edit
+await post("/api/publish", { result: Object.assign({}, moved, { selectedDate: "2099-03-03" }), changedAt: new Date().toISOString(), changed: true });
+check(db.change_log.length === 1, "a date change is not logged as an edit");
 
 // 5. timing API + page
 const t = await (await fetch(base + "/api/timing")).json();

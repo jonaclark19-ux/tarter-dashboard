@@ -42,7 +42,10 @@ check(parsed.typoYear.topic === "Electrical Cord Safety", "topic typed with the 
 check(parsed.none && parsed.none.topic === null && parsed.none.sinceISO, "no topic that day: tile still shows the day count");
 
 // --- publish a full-alert board and view it in preview
-const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
+// A fixed weekday mid-shift, so the time-dependent checks (2 h stale flag) don't depend
+// on when the suite runs.
+const NOW = Date.parse("2026-10-07T10:00:00-06:00");
+const today = "2026-10-07";
 const fx = JSON.parse(JSON.stringify(fixture));
 fx.selectedDate = today; fx.timeZone = "America/Denver";
 const byId = Object.fromEntries(fx.departments.map((d) => [d.id, d]));
@@ -51,13 +54,14 @@ byId.paint.stats.push({ tone: "default", label: "DOWNTIME", value: "25 MINS" });
 byId.paint.notes = [{ type: "warning", label: "DOWNTIME LOG", content: "Color change 6:45–7:00 AM", customColor: "#D97706" }];
 byId.tanks.notes = [{ type: "warning", label: "DOWNTIME / REASON", content: "Waiting on galv parts", customColor: "#D97706" }];
 fx.safety = { topic: "Quick Review of Hazcom", sinceISO: "2025-07-01", days: null };
-fx.sources = fx.departments.map((d, i) => ({ id: d.id, label: d.name, savedAt: new Date(Date.now() - [130, 40, 70, 25][i] * 6e4).toISOString(), fileName: "x", sheetName: "x" }));
+fx.sources = fx.departments.map((d, i) => ({ id: d.id, label: d.name, savedAt: new Date(NOW - [130, 40, 70, 25][i] * 6e4).toISOString(), fileName: "x", sheetName: "x" }));
 await fetch(base + "/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ result: fx, changedAt: new Date().toISOString() }) });
 
 const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, timezoneId: "America/Denver" });
 const tv = await ctx.newPage();
 tv.on("pageerror", (e) => errors.push("tv: " + e.message));
-await tv.goto(base + "/?src=/api/feed-snapshot&tv=1&preview=1");
+await tv.clock.install({ time: new Date(NOW) });
+await tv.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&preview=1");
 await tv.waitForFunction(() => document.querySelector(".safety-tile"), null, { timeout: 15000 }).catch(() => {});
 await tv.waitForTimeout(3000);
 const v = await tv.evaluate(() => {
@@ -93,12 +97,12 @@ await tv.screenshot({ path: "shots/v2-alerts.png" });
 
 // the normal link is v2 now, without sample loading data; ?classic=1 keeps the old layout
 const off = await ctx.newPage();
-await off.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await off.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1");
 await off.waitForTimeout(2500);
 const o1 = await off.evaluate(() => ({ safety: !!document.querySelector(".safety-tile"), loading: getComputedStyle(document.getElementById("loading-bar")).display }));
 check(o1.safety && o1.loading === "none", "official link: new layout, loading strip hidden when there is no loading data");
 const old = await ctx.newPage();
-await old.goto(base + "/?src=/api/feed-snapshot&tv=1&classic=1");
+await old.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&classic=1");
 await old.waitForTimeout(2500);
 const o = await old.evaluate(() => ({ safety: !!document.querySelector(".safety-tile"), loading: getComputedStyle(document.getElementById("loading-bar")).display, cur: /Current Attainment/i.test(document.getElementById("top-kpis").textContent) }));
 check(!o.safety && o.loading === "none" && o.cur, "?classic=1 keeps the previous layout");
@@ -164,7 +168,7 @@ fabBlank.headline.active = 0; // blank cell (no down flag): no cover
 await fetch(base + "/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ result: fxDown, changedAt: new Date().toISOString() }) });
 const tvDown = await ctx.newPage();
 tvDown.on("pageerror", (e) => errors.push("tvDown: " + e.message));
-await tvDown.goto(base + "/?src=/api/feed-snapshot&tv=1");
+await tvDown.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1");
 await tvDown.waitForFunction(() => document.querySelector("[data-dept-down]"), null, { timeout: 15000 }).catch(() => {});
 const down = await tvDown.evaluate(() => ({
   covers: Array.from(document.querySelectorAll("[data-dept-down]")).map((e) => e.dataset.deptDown),

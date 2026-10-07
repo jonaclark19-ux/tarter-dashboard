@@ -50,7 +50,7 @@ async function view(nowIso, result, url = "/?src=/api/feed-snapshot&tv=1") {
 const onPace = [dept("tanks", "TANKS", 7, 7, 60, 135, 2.1, 4.38)];
 let v = await view("2026-10-06T10:00:00", feed("2026-10-06", "2026-10-06T10:00:00", onPace));
 check(v.errors.length === 0, "no page errors: " + v.errors.join(" | "));
-check(/10[01]% TO UPLH GOAL At 10:00 AM/.test(v.cards[0]), "pace at the save time: " + v.cards[0]);
+check(/10[01]% TO UPLH GOAL \u2713 At 10:00 AM/.test(v.cards[0]), "pace at the save time: " + v.cards[0]);
 check(!/BEHIND|CRITICAL|MISSING/.test(v.cards[0]), "on-pace crew has no alert");
 check(!v.footerShown, "TV has no footer bar");
 

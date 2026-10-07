@@ -1,0 +1,20 @@
+name: tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright + Chromium
+        run: |
+          npm install -g playwright@1.56
+          npx -y playwright@1.56 install --with-deps chromium
+      - name: Run tests
+        run: NODE_PATH_GLOBAL="$(npm root -g)" npm test

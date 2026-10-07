@@ -41,7 +41,9 @@ const st = await run(() => __t.sync.publishStatus);
 check(/TVs NOT updated: HTTP 503/.test(st) && /publishable/.test(st), "failure not surfaced: " + st);
 // ...and it retries on the next check once fixed (lastBody must not have advanced)
 process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_secret_test";
-await run(async () => { await __t.publishSnapshot(__t.state.result, "x"); });
+// a failed send backs off before the next try (5 s, then longer)
+check(await run(() => __t.publishState.retryAt > Date.now()), "no backoff after a failed send");
+await run(async () => { __t.publishState.retryAt = 0; await __t.publishSnapshot(__t.state.result, "x"); });
 check(db.row.data.departments[1].stats[0].value === 7, "did not retry after backend recovered");
 check(/TVs updated/.test(await run(() => __t.sync.publishStatus)), "status did not recover");
 await browser.close(); server.close();
