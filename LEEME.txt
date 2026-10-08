@@ -44,20 +44,22 @@ DISEÑO (oficial desde 30-sep-2026)
     bajo. TO GOAL lo ajusta a la parte del turno ya trabajada (5:00 AM a
     3:30 PM): UPLH / % del turno / meta. Ej. a las 10 AM (48% del turno) un
     UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%.
-    Se calcula a la hora del ÚLTIMO GUARDADO del Excel (3a línea: "At 8:00 AM"),
-    porque el UPLH solo cambia cuando alguien guarda. Si pasan 2 h sin guardar
-    el anillo se pone gris. Antes de las 6 AM muestra "--"; al terminar el
-    turno dice "Full shift" (= UPLH / meta).
+    Se calcula a la hora del ÚLTIMO GUARDADO del Excel (3a línea: "✓ 8:00 AM"),
+    porque el UPLH solo cambia cuando alguien guarda. Corre en colores desde
+    las 5:00 AM (los primeros minutos varían mucho). Si el Excel no se ha
+    guardado en el turno, se calcula a la hora actual. Antes de las 5 AM
+    muestra "--"; al terminar el turno dice "Full shift" (= UPLH / meta).
   - ESTADO DE CADA TARJETA (etiqueta, borde y color del bloque UPLH), un solo
     criterio con el TO UPLH GOAL: verde 80%+ (ON PACE), amarillo 60-79%
     (BEHIND PACE), rojo <60% (CRITICAL PACE). "GOAL MET" cuando la producción
-    llega a lo programado. De 5 a 6 AM no hay alertas de ritmo.
+    llega a lo programado.
     Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; dura todo el
     turno. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
     la tarjeta muestra "--" y no cuenta en el total de personal.
   - Anillo DAILY ATT. (antes "DAY / Today"): producción de hoy / programado
-    (ej. 81 de 135 = 60%), igual en los 4 departamentos. Sube durante el día,
-    por eso es un anillo gris (sin semáforo); el color lo da TO UPLH GOAL.
+    (ej. 81 de 135 = 60%), igual en los 4 departamentos. Su color compara con
+    lo esperado a esa hora (DAILY ATT. / % del turno), con la misma escala
+    80 / 60.
   - Cuadro PLANT TO GOAL (antes "Projected end"): promedio simple de los
     anillos TO UPLH GOAL de los departamentos que están trabajando (cada uno
     cuenta igual, máximo 150% cada uno). Debajo: "Lowest: WELDING 57%", el
