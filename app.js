@@ -213,7 +213,8 @@
       } else if (pace.pct >= PACE_AMBER) {
         st = { level: 2, tone: "amber", color: "bg-amber-400 border-amber-400 text-amber-900", animate: "", icon: "\u25BC", title: "BEHIND PACE", message: "BEHIND PACE" };
       } else {
-        st = { level: 4, tone: "red", color: "bg-red-600 border-red-600 text-white", animate: "animate-pulse-border", icon: "\u2716", title: "CRITICAL", message: "CRITICAL PACE" };
+        // Red border and UPLH block only: no badge or pulse on the card for a slow pace.
+        st = { level: 4, tone: "red", color: "bg-red-600 border-red-600 text-white", animate: "", icon: "\u2716", title: "CRITICAL", message: "CRITICAL PACE", noBadge: true };
       }
       const paceTone = st.tone;
       // Missing people only matter on a live shift; a weekend or past day never alerts.
@@ -568,7 +569,7 @@
       let heroHtml = "";
       let statsHtml = `<div class="grid grid-cols-2 gap-3 mb-5">`;
       let badgeHtml = "";
-      if (diagnosis.level > 1 || diagnosis.showBadge) {
+      if ((diagnosis.level > 1 || diagnosis.showBadge) && !diagnosis.noBadge) {
         badgeHtml = `
         <div class="absolute top-4 right-4 px-3 py-1.5 rounded-md text-[10px] font-black tracking-widest uppercase shadow-md flex items-center gap-1.5 z-10 ${diagnosis.color}">
           <span aria-hidden="true">${diagnosis.icon}</span> ${escapeHtml(diagnosis.message)}

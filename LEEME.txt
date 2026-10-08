@@ -51,8 +51,8 @@ DISEÑO (oficial desde 30-sep-2026)
     muestra "--"; al terminar el turno dice "Full shift" (= UPLH / meta).
   - ESTADO DE CADA TARJETA (etiqueta, borde y color del bloque UPLH), un solo
     criterio con el TO UPLH GOAL: verde 80%+ (ON PACE), amarillo 60-79%
-    (BEHIND PACE), rojo <60% (CRITICAL PACE). "GOAL MET" cuando la producción
-    llega a lo programado.
+    (BEHIND PACE), rojo <60% (sin etiqueta: solo borde y bloque UPLH en rojo).
+    "GOAL MET" cuando la producción llega a lo programado.
     Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; dura todo el
     turno. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
     la tarjeta muestra "--" y no cuenta en el total de personal.
