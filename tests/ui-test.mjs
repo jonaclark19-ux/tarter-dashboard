@@ -85,7 +85,7 @@ for (const s of screens) {
   check(/SOURCE PC OFFLINE/.test(m.warnings), "stale source warning missing: " + m.warnings);
   check(/SOURCE OFFLINE/.test(m.label || ""), "stale label missing: " + m.label);
   const badge = await page.evaluate(() => { const b = document.getElementById("source-offline-badge"); const r = b.getBoundingClientRect(); return { hidden: b.classList.contains("hidden"), text: b.textContent, inView: r.width > 0 && r.bottom <= innerHeight + 1 && r.top >= 0 }; });
-  check(!badge.hidden && badge.inView && /SOURCE PC OFFLINE/.test(badge.text), "offline badge not visible on TV: " + JSON.stringify(badge));
+  check(badge.hidden && !/SOURCE PC OFFLINE/.test(badge.text), "no SOURCE PC OFFLINE banner on the TV: " + JSON.stringify(badge));
   await page.screenshot({ path: "shots/hisense-stale.png" });
   // source comes back
   await publish(changed, null);

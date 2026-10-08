@@ -276,8 +276,8 @@ function render() {
   const offlineBadge = document.getElementById("source-offline-badge");
   const dataFrom = sync.sourceHeartbeatAt ? plantTimeText(sync.sourceHeartbeatAt) : sync.lastFeedOkAt ? plantTimeText(new Date(sync.lastFeedOkAt)) : "--:--";
   const sourceError = sync.mode === "url" && state.result && typeof state.result.sourceError === "string" ? state.result.sourceError : "";
+  // SOURCE PC OFFLINE is not shown on the big banner (only in the warnings list).
   const tvAlert = feedDown ? "\u26A0 NO CONNECTION TO SERVER \xB7 DATA FROM " + dataFrom
-    : sourceOffline ? "\u26A0 SOURCE PC OFFLINE \xB7 DATA FROM " + lastSeen
     : sourceError ? "\u26A0 " + sourceError.toUpperCase() : "";
   if (offlineBadge) {
     offlineBadge.textContent = tvAlert;

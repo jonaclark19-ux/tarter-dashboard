@@ -84,9 +84,9 @@ Abajo a la derecha, en la línea de estado, aparece:
 
 QUÉ VER EN LAS TVs
 ------------------
-Arriba, "SYSTEM ACTIVE" (se pone en rojo si hay un problema).
+Arriba, "SYSTEM ACTIVE" (se pone en rojo si hay un problema). Si la PC
+fuente se apaga ya no sale aviso grande en la TV.
 Avisos grandes en rojo abajo de la pantalla (los números no se borran):
-  "SOURCE PC OFFLINE · DATA FROM 02:31 PM"   la PC fuente no avisa hace 3 min
   "CLICK RECONNECT FOLDER ON THE SOURCE PC"  la PC fuente perdió el permiso
   "SOURCE PC CAN'T READ THE EXCEL FILES: …"  la PC está prendida pero falla
   "NO CONNECTION TO SERVER · DATA FROM …"     la TV no llega al servidor hace 15 min
