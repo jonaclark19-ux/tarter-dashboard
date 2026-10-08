@@ -278,7 +278,6 @@
   // Each department's Excel UPLH divides today's output by a full shift of labor hours,
   // so at 10 AM it reads ~half of goal even when the crew is right on pace. The TO GOAL
   // ring shows the pace at this hour instead: UPLH scaled to the share of the shift worked.
-  var UPLH_PACE_MIN_MINUTES = 60;
   // Pace thresholds shared by the TO UPLH GOAL ring, the card status and PLANT TO GOAL.
   var PACE_GREEN = 80, PACE_AMBER = 60;
   function clockLabel(d) {
@@ -308,8 +307,9 @@
     let asOf = now;
     const saved = deptSavedPlant(dept.id);
     if (saved && saved >= shiftStart && saved < now) asOf = saved;
-    const elapsed = Math.floor((asOf - shiftStart) / 6e4);
-    if (elapsed < UPLH_PACE_MIN_MINUTES) return { pct: null, sub: "From " + (SHIFT_START_HOUR + UPLH_PACE_MIN_MINUTES / 60) + " AM" };
+    // Runs from the start of the shift (the first minutes swing a lot - that's accepted).
+    if (now < shiftStart) return { pct: null, sub: "From " + SHIFT_START_HOUR + " AM" };
+    const elapsed = Math.max(1, Math.floor((asOf - shiftStart) / 6e4));
     const totalMinutes = (SHIFT_END_HOUR * 60 + SHIFT_END_MINUTE) - SHIFT_START_HOUR * 60;
     const paceUplh = uplh / Math.min(1, elapsed / totalMinutes);
     const idle = Math.floor((now - asOf) / 6e4);
@@ -318,7 +318,7 @@
       stale: idle >= FRESHNESS_STALE_MIN,
       uplh: paceUplh,
       pct: Math.round(paceUplh / goal * 100),
-      sub: "At " + clockLabel(asOf)
+      sub: clockLabel(asOf)
     };
   }
   // A department is "down" when its sheet says 0 people present (typed as 0, not left
@@ -537,13 +537,14 @@
         </div>
       </div>`;
     // Labels are fixed markup; the <br> keeps them two short lines beside the ring.
-    // DAILY ATT. climbs all day, so a stoplight would paint every morning red; it is a
-    // neutral progress ring and the TO UPLH GOAL ring carries the status color.
-    const dayCell = cell(data.attainment, "DAILY<br>ATT.", "", pace ? () => "#475569" : null, !pace);
-    // A pace from a save over 2 h old is shown grey: it says where they were, not where they are.
+    // DAILY ATT. climbs all day, so its color compares it with what was expected by now
+    // (attainment / share of the shift worked), on the same 80 / 60 scale as the pace.
+    const shiftNow = shiftProjectionContext(selectedDateISO());
+    const dayColor = (v) => (shiftNow.fraction > 0 ? paceStoplightColor(Math.round(v / shiftNow.fraction)) : "#475569");
+    const dayCell = cell(data.attainment, "DAILY<br>ATT.", "", pace ? dayColor : null, !pace);
     // A symbol next to the time, so the status doesn't rest on red vs green alone.
-    const paceMark = !pace || pace.pct === null || pace.stale ? "" : pace.pct >= PACE_GREEN ? "\u2713 " : pace.pct >= PACE_AMBER ? "\u25BC " : "\u2716 ";
-    const weekCell = pace ? cell(pace.pct, "TO UPLH<br>GOAL", paceMark + pace.sub, pace.stale ? () => "#94A3B8" : paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
+    const paceMark = !pace || pace.pct === null ? "" : pace.pct >= PACE_GREEN ? "\u2713 " : pace.pct >= PACE_AMBER ? "\u25BC " : "\u2716 ";
+    const weekCell = pace ? cell(pace.pct, "TO UPLH<br>GOAL", paceMark + pace.sub, paceStoplightColor) : hasWeek ? cell(data.weekAttainment, "WEEK", "Mon\u2013now") : "";
     const divider = hasWeek ? `<div class="w-px self-stretch bg-slate-200 mx-1 my-1"></div>` : "";
     return `
       <div class="mb-6 px-1 shrink-0">
