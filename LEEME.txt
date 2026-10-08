@@ -10,9 +10,10 @@ CÓMO FUNCIONA
   servidor (Vercel + Supabase) al instante. Si nada cambió, igual manda un
   "latido" una vez por minuto para avisar que sigue viva.
 - Todas las demás pantallas (Smart TV, PC, celular) solo abren un link y
-  leen lo último que mandó la fuente cada 30 s. Sin login, sin carpeta.
-  (30 s mantiene ~10 TVs x 13 h x lunes-viernes dentro del plan gratis de
-  Vercel: 1 millón de consultas al mes.)
+  leen lo último que mandó la fuente. Sin login, sin carpeta.
+  Lunes a viernes de 4:30 AM a 4:00 PM revisan cada 15 s; de noche y en fin
+  de semana cada 5 min (la PC fuente cada 1 min). Así ~10 TVs prendidas
+  24/7 quedan dentro del millón de consultas al mes de Vercel.
 
 LINKS
 -----
@@ -42,18 +43,29 @@ DISEÑO (oficial desde 30-sep-2026)
     el turno COMPLETO (personas x 10 h), así que a media mañana siempre se ve
     bajo. TO GOAL lo ajusta a la parte del turno ya trabajada (5:00 AM a
     3:30 PM): UPLH / % del turno / meta. Ej. a las 10 AM (48% del turno) un
-    UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%. En la 3a línea: "At 10:00 AM".
-    Antes de las 6:00 AM muestra "--"; al terminar el turno dice "Full shift"
-    (= UPLH / meta). Verde 100%+, amarillo 80-99%, rojo <80%. La alerta
-    "BELOW TARGET UPLH" usa este mismo ritmo.
+    UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%.
+    Se calcula a la hora del ÚLTIMO GUARDADO del Excel (3a línea: "At 8:00 AM"),
+    porque el UPLH solo cambia cuando alguien guarda. Si pasan 2 h sin guardar
+    el anillo se pone gris. Antes de las 6 AM muestra "--"; al terminar el
+    turno dice "Full shift" (= UPLH / meta).
+  - ESTADO DE CADA TARJETA (etiqueta, borde y color del bloque UPLH), un solo
+    criterio con el TO UPLH GOAL: verde 80%+ (ON PACE), amarillo 60-79%
+    (BEHIND PACE), rojo <60% (CRITICAL PACE). "GOAL MET" cuando la producción
+    llega a lo programado. De 5 a 6 AM no hay alertas de ritmo.
+    Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; dura todo el
+    turno. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
+    la tarjeta muestra "--" y no cuenta en el total de personal.
   - Anillo DAILY ATT. (antes "DAY / Today"): producción de hoy / programado
-    (ej. 81 de 135 = 60%). Sube durante el día hasta el cierre.
+    (ej. 81 de 135 = 60%), igual en los 4 departamentos. Sube durante el día,
+    por eso es un anillo gris (sin semáforo); el color lo da TO UPLH GOAL.
   - Cuadro PLANT TO GOAL (antes "Projected end"): promedio simple de los
-    anillos TO GOAL de los departamentos que están trabajando (cada uno
-    cuenta igual). Debajo, "Plan: ~3,075 of 3,948 units by 3:30 PM (78%)":
-    las piezas de todos los departamentos sumadas y proyectadas al ritmo
-    actual (en esta suma FAB pesa mucho más porque hace miles de piezas).
-    Verde 100%+, amarillo 80-99%, rojo <80%. Antes de las 6:00 AM: N/A.
+    anillos TO UPLH GOAL de los departamentos que están trabajando (cada uno
+    cuenta igual, máximo 150% cada uno). Debajo: "Lowest: WELDING 57%", el
+    departamento más bajo. Mismos colores (80 / 60). Antes de las 6 AM: N/A.
+  - FIN DE SEMANA: las TVs muestran "WEEKEND · back Monday 5:00 AM" (y el
+    cuadro de seguridad). La PC fuente sigue viendo todo.
+  - Las TVs no tienen la barra de abajo. La etiqueta "TV MODE · NEXT CHECK"
+    solo aparece con &debug=1 en el link.
   - Diseño anterior: agregar &classic=1 al link.
   - Vista de prueba con datos de ejemplo en Loading: /tv-preview
 
@@ -70,13 +82,15 @@ Abajo a la derecha, en la línea de estado, aparece:
 
 QUÉ VER EN LAS TVs
 ------------------
-Etiqueta de arriba: "TV MODE · DATA 02:31 PM · SCALE AUTO 53% · NEXT CHECK 7S"
-  DATA = la última vez que la PC fuente confirmó sus datos.
-Si la PC fuente se apaga, se cierra la pestaña o pierde la carpeta por más
-de 3 minutos, la TV muestra un aviso rojo en el pie de página:
-  "SOURCE PC OFFLINE · DATA FROM 02:31 PM"
-Los números que se ven son los últimos que mandó (no se borran). El aviso
-desaparece solo cuando la fuente vuelve.
+Arriba, "SYSTEM ACTIVE" (se pone en rojo si hay un problema).
+Avisos grandes en rojo abajo de la pantalla (los números no se borran):
+  "SOURCE PC OFFLINE · DATA FROM 02:31 PM"   la PC fuente no avisa hace 3 min
+  "CLICK RECONNECT FOLDER ON THE SOURCE PC"  la PC fuente perdió el permiso
+  "SOURCE PC CAN'T READ THE EXCEL FILES: …"  la PC está prendida pero falla
+  "NO CONNECTION TO SERVER · DATA FROM …"     la TV no llega al servidor hace 15 min
+Si una TV prende sin internet, muestra los últimos datos que guardó, o
+"WAITING FOR DATA" (nunca datos de ejemplo).
+Con &debug=1 en el link se ve la etiqueta técnica "TV MODE · DATA … · NEXT CHECK".
 
 MEDIR LOS TIEMPOS
 -----------------
@@ -84,7 +98,7 @@ Abrir en cualquier PC o celular:
   https://tarter-west-dashboard.vercel.app/tiempos
 Muestra cada cambio real de números con:
   Excel guardado -> dashboard   (SharePoint -> OneDrive -> lectura de la PC fuente)
-  Dashboard -> cada TV          (internet + caché de 15 s + chequeo cada 30 s)
+  Dashboard -> cada TV          (internet + caché de 5 s + chequeo cada 15 s)
   Total                         (hasta la TV más lenta)
 Para que cada TV salga con su nombre, agregar &screen=Nombre a su link, ej.:
   https://tarter-west-dashboard.vercel.app/?src=/api/feed-snapshot&tv=1&screen=Soldadura
@@ -97,6 +111,24 @@ hora exacta al escribir y compárala con "Excel guardado" en la tabla.
 
 PROTECCIONES AUTOMÁTICAS
 ------------------------
+- Si falta el bloque de hoy en el Excel (FAB, WELDING, TANKS), la tarjeta
+  dice NO DATA "No Fri 10/9 block in the Excel" (antes mostraba el día anterior).
+- La pestaña semanal puede tener la fecha del domingo o de cualquier día de la
+  semana hasta hoy (ej. martes si el lunes fue feriado).
+- Archivos: cada departamento se busca por el NOMBRE del archivo, no de la
+  carpeta. Se ignoran copias ("- Copy", "(1)", "backup", "old"), copias de
+  conflicto de OneDrive y las carpetas Archive/Old/Backup. Un nombre que
+  sirve para dos departamentos (ej. "Tank Paint Colors") no se usa.
+- Si OneDrive bloquea un Excel un momento, se sigue mostrando lo último bueno
+  de ese departamento y se reintenta a los 5 s.
+- Números escritos como texto ("1,250", "85%") se leen bien. La meta UPLH se
+  lee aunque tenga texto ("UPLH Goal: 4.38 pcs"). Filas TOTAL/SUBTOTAL no se
+  suman dos veces. TANKS busca las filas SCHEDULED PROD. / TOTAL PROD. por su
+  texto (agregar un producto ya no corre los números). PAINT busca la fila
+  TOTAL por su texto; el downtime suma todos los rangos de cada fila.
+- Seguridad: los valores que llegan a las TVs se revisan antes de mostrarse
+  (no se puede meter código). Falta la clave de publicación (pendiente).
+- Pruebas: npm test (7 pruebas automáticas, usan tests/fixture.json).
 - Departamento sin funcionar: si en su Excel el personal presente es 0
   (escrito como 0, no vacío), la tarjeta se cubre con "NOT RUNNING · 0
   PERSONNEL PRESENT" y ese departamento no cuenta en Projected end, en
@@ -134,10 +166,19 @@ REGLAS PARA QUE NO FALLE
 2. Solo UNA PC debe tener "Connect Folder" conectado. Si dos PCs lo tienen,
    las dos publican y se pisan entre sí.
 3. Si en la PC fuente cambias la fecha a mano (Selected Date), las TVs van
-   a mostrar esa fecha también.
+   a mostrar esa fecha también, solo ese día: al día siguiente vuelve sola a
+   la fecha de hoy.
 4. Supabase (plan gratis) pausa el proyecto tras 7 días sin uso; la consulta
    diaria automática lo evita. Si aun así las TVs dieran error, entra a
    supabase.com -> proyecto tarter-dashboard-feed -> "Restore project".
+5. Configuración de la PC fuente (una sola vez):
+   - Chrome: Configuración -> Rendimiento -> Ahorro de memoria -> "Mantener
+     siempre activos estos sitios" -> agregar tarter-west-dashboard.vercel.app.
+     Edge: Configuración -> Sistema y rendimiento -> "Nunca poner en suspensión
+     estos sitios" -> agregar el mismo sitio.
+   - Al conectar la carpeta, en el aviso de permiso elegir "Permitir en cada
+     visita" (si aparece), así después de reiniciar no hay que volver a dar
+     clic en Reconnect Folder.
 
 AJUSTE AUTOMÁTICO DEL TAMAÑO EN TV
 ----------------------------------
@@ -161,20 +202,37 @@ CONFIGURACIÓN (ya hecha, solo referencia)
 
 SEGURIDAD
 ---------
-/api/feed-snapshot y /api/publish son públicos (así se decidió): quien
-tenga el link ve los datos, y quien conozca /api/publish podría mandar
-datos falsos. Si algún día preocupa, se puede agregar una clave simple.
-La llave de Supabase nunca llega al navegador.
+/api/feed-snapshot es público: quien tenga el link ve los datos.
+/api/publish: el servidor revisa lo que llega (los números tienen que ser
+números) y las TVs nunca ejecutan nada de lo que viene en los datos.
+CLAVE DE PUBLICACIÓN (opcional, recomendado):
+  1. Vercel -> Settings -> Environment Variables -> agregar PUBLISH_KEY con
+     una clave inventada (ej. tarter-2026-xyz) -> Redeploy.
+  2. En la PC fuente abrir UNA vez:
+       https://tarter-west-dashboard.vercel.app/?publishkey=tarter-2026-xyz
+     (el navegador la guarda; el link se limpia solo).
+  Sin PUBLISH_KEY en Vercel todo funciona como antes (sin clave). Si la clave
+  no coincide, la línea de estado de la PC fuente dice "publish key missing
+  or wrong".
+La página tiene Content-Security-Policy: solo corre código de este sitio.
+La llave de Supabase nunca llega al navegador. Los registros de tiempos de
+más de 30 días se borran solos (consulta diaria).
+Links de prueba: &debug=1 (etiqueta técnica en la TV), &schedule=off (sin
+horario: revisa cada 15 s siempre y sin pantalla de fin de semana).
 
 ARCHIVOS
 --------
-index.html            el dashboard (fuente y TVs usan el mismo archivo)
+index.html            la página del dashboard (fuente y TVs usan la misma)
+app.js                todo el código del dashboard (lectura de Excel, envío, TV)
 api/publish.js        recibe los datos de la PC fuente
 api/feed-snapshot.js  entrega los datos a las TVs
 api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)
 api/timing.js         calcula los tiempos para timing.html
 api/keepalive.js      consulta diaria (Vercel Cron) para que Supabase no se pause
-timing.html           tabla de tiempos
+timing.html/.js       tabla de tiempos
+tests/                pruebas automáticas (npm test; también corren en GitHub
+                      en cada PR, .github/workflows/test.yml)
 lib/db.js             lectura/escritura en Supabase
 vendor/xlsx.js        lector de Excel (solo lo carga la PC fuente)
-vercel.json           cabeceras (no-cache en la página, caché corto en la API)
+vercel.json           cabeceras (no-cache en la página, caché corto en la API,
+                      caché de 1 año para vendor/xlsx.js, seguridad)

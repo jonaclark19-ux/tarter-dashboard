@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
-const require = createRequire(process.env.NODE_PATH_GLOBAL + "/");
+const require = createRequire((process.env.NODE_PATH_GLOBAL || "/opt/node22/lib/node_modules") + "/");
 const { chromium } = require("playwright");
 const { server, db } = await import("./server.mjs");
 await new Promise((r) => server.listen(4181, r));
@@ -44,7 +44,7 @@ for (const s of screens) {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(base + "/?src=/api/feed-snapshot&tv=1");
+  await page.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&debug=1");
   await page.waitForFunction(() => /FAB/.test(document.getElementById("dept-grid").textContent) && document.body.dataset.tvScale, null, { timeout: 15000 });
   await page.waitForTimeout(3200); // let the 400 ms / 2.5 s refits run
   const m = await measure(page);
@@ -67,7 +67,7 @@ for (const s of screens) {
 {
   const ctx = await browser.newContext({ viewport: { width: 960, height: 540 }, screen: { width: 960, height: 540 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
-  await page.goto(base + "/?src=/api/feed-snapshot&tv=1");
+  await page.goto(base + "/?src=/api/feed-snapshot&schedule=off&tv=1&debug=1");
   await page.waitForFunction(() => /886/.test(document.getElementById("dept-grid").textContent), null, { timeout: 15000 });
   const changed = JSON.parse(JSON.stringify(fixture));
   changed.departments[0].stats[0].value = 999;

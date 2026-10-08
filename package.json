@@ -2,5 +2,8 @@
   "name": "tarter-dashboard-feed",
   "version": "1.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "for f in tests/*-test.mjs; do node \"$f\" || exit 1; done"
+  }
 }

@@ -1,4 +1,4 @@
-// Local stand-in for Vercel: serves ../vercel-deploy statically and runs its real
+// Local stand-in for Vercel: serves the repo statically and runs its real
 // api/*.js handlers, with Supabase's REST endpoint replaced by an in-memory row.
 import http from "node:http";
 import fs from "node:fs";
@@ -70,13 +70,16 @@ export const server = http.createServer(async (req, res) => {
   const file = path.join(root, url.pathname === "/" ? "index.html" : url.pathname);
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; return res.end("nf"); }
   res.setHeader("content-type", file.endsWith(".html") ? "text/html; charset=utf-8" : file.endsWith(".js") ? "text/javascript; charset=utf-8" : "application/octet-stream");
-  if (file.endsWith("index.html") && url.searchParams.get("__test") === "1") {
-    // Test-only copy: expose the IIFE's internals so the publish logic can be driven directly.
-    const html = fs.readFileSync(file, "utf8");
-    const i = html.lastIndexOf("})();");
-    return res.end(html.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet };\n" + html.slice(i));
+  if (url.searchParams.get("__test") === "1" && file.endsWith("index.html")) {
+    // Test-only copy: load the app with the hook below.
+    return res.end(fs.readFileSync(file, "utf8").replace('<script src="app.js">', '<script src="app.js?__test=1">'));
   }
-  if (db.failWrites && false) {}
+  if (url.searchParams.get("__test") === "1" && file.endsWith("app.js")) {
+    // Expose the IIFE's internals so the publish logic can be driven directly.
+    const js = fs.readFileSync(file, "utf8");
+    const i = js.lastIndexOf("})();");
+    return res.end(js.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet };\n" + js.slice(i));
+  }
   fs.createReadStream(file).pipe(res);
 });
 

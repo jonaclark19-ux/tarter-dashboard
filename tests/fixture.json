@@ -1,0 +1,192 @@
+{
+ "selectedDate": "2026-09-21",
+ "selectedWeekStart": "2026-09-21",
+ "departments": [
+  {
+   "id": "fab",
+   "name": "FAB",
+   "status": "on_target",
+   "meta": "MON–FRI · CURRENT DAY ONLY",
+   "attainment": 84,
+   "attainmentLabel": "DAILY ATTAINMENT",
+   "weekAttainment": 79,
+   "headline": {
+    "icon": "👤",
+    "active": 4,
+    "total": 4,
+    "label": "PRESENT / EXPECTED",
+    "countsAsPersonnel": true
+   },
+   "stats": [
+    {
+     "label": "ACTUAL",
+     "value": 886,
+     "tone": "default"
+    },
+    {
+     "label": "FORECAST",
+     "value": "4172",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH",
+     "value": "38.2",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH GOAL",
+     "value": "45.3",
+     "tone": "default"
+    }
+   ]
+  },
+  {
+   "id": "welding",
+   "name": "WELDING",
+   "status": "on_target",
+   "meta": "MON–FRI · CURRENT DAY ONLY",
+   "attainment": 84,
+   "attainmentLabel": "DAILY ATTAINMENT",
+   "weekAttainment": 88,
+   "headline": {
+    "icon": "👤",
+    "active": 16,
+    "total": 16,
+    "label": "PRESENT / EXPECTED",
+    "countsAsPersonnel": true
+   },
+   "stats": [
+    {
+     "label": "ACTUAL",
+     "value": "185",
+     "tone": "default"
+    },
+    {
+     "label": "FORECAST",
+     "value": "220",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH",
+     "value": "3.8",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH GOAL",
+     "value": "4.0",
+     "tone": "default"
+    }
+   ],
+   "notes": [
+    {
+     "type": "warning",
+     "label": "MATERIAL / ISSUES",
+     "content": "EHSPBR4W · 6GG16W",
+     "customColor": "#D97706"
+    }
+   ]
+  },
+  {
+   "id": "paint",
+   "name": "PAINT",
+   "status": "at_risk",
+   "meta": "CURRENT DAY ONLY",
+   "attainment": 74,
+   "attainmentLabel": "DAILY ATTAINMENT",
+   "weekAttainment": 81,
+   "headline": {
+    "icon": "👤",
+    "active": 8,
+    "total": 10,
+    "label": "PRESENT / EXPECTED",
+    "countsAsPersonnel": true
+   },
+   "stats": [
+    {
+     "label": "PAINTED",
+     "value": "620",
+     "tone": "default"
+    },
+    {
+     "label": "SCHEDULED",
+     "value": "840",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH",
+     "value": "77",
+     "tone": "default"
+    },
+    {
+     "label": "GOAL",
+     "value": "84",
+     "tone": "default"
+    },
+    {
+     "label": "DOWNTIME",
+     "value": "30 MINS",
+     "tone": "yellow"
+    }
+   ],
+   "notes": [
+    {
+     "type": "warning",
+     "label": "DOWNTIME LOG",
+     "content": "Change color 5:25am-5:55am · paintbooth motor 6:10am",
+     "customColor": "#D97706"
+    }
+   ],
+   "currentColor": {
+    "name": "GREEN",
+    "hex": "#16A34A",
+    "gradient": "linear-gradient(90deg, #013449, #16A34A)"
+   }
+  },
+  {
+   "id": "tanks",
+   "name": "TANKS",
+   "status": "at_risk",
+   "meta": "DAILY GRID + LAYERS A B C",
+   "attainment": 69,
+   "attainmentLabel": "DAILY ATTAINMENT",
+   "weekAttainment": 72,
+   "headline": {
+    "icon": "👤",
+    "active": 4,
+    "total": 7,
+    "label": "PRESENT / EXPECTED",
+    "countsAsPersonnel": true
+   },
+   "stats": [
+    {
+     "label": "PRODUCTION",
+     "value": "38",
+     "tone": "default"
+    },
+    {
+     "label": "SCHEDULED",
+     "value": "55",
+     "tone": "default"
+    },
+    {
+     "label": "UPLH",
+     "value": "3.2",
+     "tone": "default"
+    },
+    {
+     "label": "GOAL",
+     "value": "3.5",
+     "tone": "default"
+    },
+    {
+     "label": "WORKING ON",
+     "value": "SWT313",
+     "tone": "green"
+    }
+   ]
+  }
+ ],
+ "warnings": [],
+ "sources": [],
+ "missing": []
+}
