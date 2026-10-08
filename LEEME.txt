@@ -225,7 +225,16 @@ horario: revisa cada 15 s siempre y sin pantalla de fin de semana).
 ARCHIVOS
 --------
 index.html            la página del dashboard (fuente y TVs usan la misma)
-app.js                todo el código del dashboard (lectura de Excel, envío, TV)
+js/                   el código del dashboard, en partes (se cargan en este orden):
+  config.js           horarios, departamentos, datos de ejemplo
+  alert-engine.js     estado de cada tarjeta (pace, GOAL MET, faltan personas)
+  render.js           dibujo de tarjetas, anillos, KPIs, barra de LOADING
+  excel.js            ayudas para leer celdas, fechas y bloques por día
+  extractors.js       lectura de cada Excel: FAB, WELDING, PAINT, TANKS
+  parser.js           arma los datos de la planta (Board Info, LOADING)
+  main.js             estado de la página, reloj, modo TV y escala
+  sync.js             lectura automática de la carpeta, envío y TVs
+  start.js            arranca la página (siempre al final)
 api/publish.js        recibe los datos de la PC fuente
 api/feed-snapshot.js  entrega los datos a las TVs
 api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)

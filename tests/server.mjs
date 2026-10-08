@@ -71,14 +71,10 @@ export const server = http.createServer(async (req, res) => {
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; return res.end("nf"); }
   res.setHeader("content-type", file.endsWith(".html") ? "text/html; charset=utf-8" : file.endsWith(".js") ? "text/javascript; charset=utf-8" : "application/octet-stream");
   if (url.searchParams.get("__test") === "1" && file.endsWith("index.html")) {
-    // Test-only copy: load the app with the hook below.
-    return res.end(fs.readFileSync(file, "utf8").replace('<script src="app.js">', '<script src="app.js?__test=1">'));
-  }
-  if (url.searchParams.get("__test") === "1" && file.endsWith("app.js")) {
-    // Expose the IIFE's internals so the publish logic can be driven directly.
-    const js = fs.readFileSync(file, "utf8");
-    const i = js.lastIndexOf("})();");
-    return res.end(js.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet, buildTanksFromSheet };\n" + js.slice(i));
+    // Test-only copy: after the app's scripts, expose its internals so the publish
+    // logic can be driven directly (the files share one global scope).
+    const hook = "<script>window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet, buildTanksFromSheet };</script>";
+    return res.end(fs.readFileSync(file, "utf8").replace('<script src="js/start.js"></script>', '<script src="js/start.js"></script>' + hook));
   }
   fs.createReadStream(file).pipe(res);
 });
