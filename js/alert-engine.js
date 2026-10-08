@@ -56,8 +56,9 @@ var AlertEngine = class {
       st = { level: 4, tone: "red", color: "bg-red-600 border-red-600 text-white", animate: "", icon: "\u2716", title: "CRITICAL", message: "CRITICAL PACE", noBadge: true };
     }
     const paceTone = st.tone;
-    // Missing people only matter on a live shift; a weekend or past day never alerts.
-    if (live && this.personnelActive !== null && this.personnelExpected > 0 && this.personnelActive < this.personnelExpected) {
+    // Missing people only matter on a live shift, and only until 10:00 AM; a weekend or
+    // past day never alerts.
+    if (live && plantNow().getHours() < PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR && this.personnelActive !== null && this.personnelExpected > 0 && this.personnelActive < this.personnelExpected) {
       const missing = this.personnelExpected - this.personnelActive;
       const level = missing / this.personnelExpected >= 0.25 ? 4 : 3;
       if (level >= st.level) {
