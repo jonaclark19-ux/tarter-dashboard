@@ -58,38 +58,25 @@ function clockLabel(d) {
 function selectedDateISO() {
   return typeof state !== "undefined" && state.result && state.result.selectedDate ? state.result.selectedDate : todayISO();
 }
-/** When this department's Excel was last saved, as a plant-clock Date (like plantNow()). */
-function deptSavedPlant(deptId) {
-  const sources = typeof state !== "undefined" && state.result && Array.isArray(state.result.sources) ? state.result.sources : [];
-  const src = sources.find((x) => x && x.id === deptId);
-  const ms = src && src.savedAt ? Date.parse(src.savedAt) : NaN;
-  if (!Number.isFinite(ms)) return null;
-  return new Date(plantNow().getTime() - (Date.now() - ms));
-}
 function uplhPaceNow(dept, uplh, goal) {
   if (!dept || uplh === null || goal === null) return null;
   if (dept.placeholder || !(goal > 0)) return { pct: null, sub: "No goal" };
   const shift = shiftProjectionContext(selectedDateISO());
   if (shift.isHistorical || shift.complete) return { pct: Math.round(uplh / goal * 100), sub: "Full shift", final: true };
-  // The Excel UPLH only moves when someone saves, so the pace is measured at the last
-  // save, not at the current minute: an 8:00 save viewed at 11:00 still reads "at 8:00".
+  // Measured at the current minute: the Excel UPLH only moves when someone saves, so
+  // the % drops between saves - on purpose, it pushes the departments to report often.
   const now = plantNow();
   const shiftStart = new Date(now); shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
-  let asOf = now;
-  const saved = deptSavedPlant(dept.id);
-  if (saved && saved >= shiftStart && saved < now) asOf = saved;
   // Runs from the start of the shift (the first minutes swing a lot - that's accepted).
   if (now < shiftStart) return { pct: null, sub: "From " + SHIFT_START_HOUR + " AM" };
-  const elapsed = Math.max(1, Math.floor((asOf - shiftStart) / 6e4));
+  const elapsed = Math.max(1, Math.floor((now - shiftStart) / 6e4));
   const totalMinutes = (SHIFT_END_HOUR * 60 + SHIFT_END_MINUTE) - SHIFT_START_HOUR * 60;
   const paceUplh = uplh / Math.min(1, elapsed / totalMinutes);
-  const idle = Math.floor((now - asOf) / 6e4);
   return {
     live: true,
-    stale: idle >= FRESHNESS_STALE_MIN,
     uplh: paceUplh,
     pct: Math.round(paceUplh / goal * 100),
-    sub: clockLabel(asOf)
+    sub: clockLabel(now)
   };
 }
 // A department is "down" when its sheet says 0 people present (typed as 0, not left
