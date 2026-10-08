@@ -70,6 +70,12 @@ check(/9\d% TO UPLH GOAL \u2713 5:40 AM/.test(v.cards[0]) && !/BEHIND|CRITICAL/.
 v = await view("2026-10-06T04:40:00", feed("2026-10-06", "2026-10-06T04:40:00", [dept("tanks", "TANKS", 7, 7, 0, 135, 0, 4.38)]));
 check(/-- TO UPLH GOAL From 5 AM/.test(v.cards[0]), "before 5 AM there is no pace yet: " + v.cards[0]);
 
+// Missing people: alert until 10:00 AM, gone after.
+v = await view("2026-10-06T09:30:00", feed("2026-10-06", "2026-10-06T09:30:00", [dept("tanks", "TANKS", 5, 7, 60, 135, 2.1, 4.38)]));
+check(/2 MISSING/.test(v.cards[0]), "shortage alert before 10 AM: " + v.cards[0]);
+v = await view("2026-10-06T10:05:00", feed("2026-10-06", "2026-10-06T10:05:00", [dept("tanks", "TANKS", 5, 7, 60, 135, 2.1, 4.38)]));
+check(!/MISSING/.test(v.cards[0]), "no shortage alert after 10 AM: " + v.cards[0]);
+
 // Weekend: plain WEEKEND screen, no shortage alarms.
 v = await view("2026-10-10T08:30:00", feed("2026-10-09", "2026-10-09T15:00:00", [dept("tanks", "TANKS", 2, 7, 3, 135, 0.1, 4.38)]));
 check(/WEEKEND/.test(v.grid) && !/MISSING/.test(v.grid), "weekend screen: " + v.grid);

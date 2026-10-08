@@ -53,8 +53,8 @@ DISEÑO (oficial desde 30-sep-2026)
     criterio con el TO UPLH GOAL: verde 80%+ (ON PACE), amarillo 60-79%
     (BEHIND PACE), rojo <60% (sin etiqueta: solo borde y bloque UPLH en rojo).
     "GOAL MET" cuando la producción llega a lo programado.
-    Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; dura todo el
-    turno. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
+    Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; se muestra
+    de 5:00 a 10:00 AM y después se quita sola. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
     la tarjeta muestra "--" y no cuenta en el total de personal.
   - Anillo DAILY ATT. (antes "DAY / Today"): producción de hoy / programado
     (ej. 81 de 135 = 60%), igual en los 4 departamentos. Su color compara con

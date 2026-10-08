@@ -38,6 +38,8 @@ function deviceTimeZone() {
   const m = /[?&]tz=([^&]+)/.exec(location.search);
   if (m) { setPlantTimeZone(decodeURIComponent(m[1])); plantTzFromUrl = plantTimeZone !== null; }
 })();
+// Missing-people alerts (N MISSING) only show from the start of the shift until 10:00 AM.
+var PERSONNEL_SHORTAGE_HIDE_AFTER_HOUR = 10;
 var EXPECTED_HEADCOUNT = { welding: 16, paint: 10, tanks: 7, fab: 4 };
 var WELD_BLOCK_STARTS = ["A", "E", "I", "M", "Q"];
 var FAB_BLOCK_STARTS = ["A", "F", "K", "P", "U"];
