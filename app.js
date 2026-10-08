@@ -865,7 +865,8 @@
     const d = (state && state.result && state.result.loading) || (LAYOUT_PREVIEW ? LOADING_SAMPLE : null);
     if (!d) { el.style.display = "none"; el.innerHTML = ""; return; }
     const goal = LOADING_WEEKLY_GOAL;
-    const pct = goal ? Math.min(100, Math.round(d.trailersWeek / goal * 100)) : null;
+    // The % shows the real figure (21 of 16 = 131%); only the bar stops at full.
+    const pct = goal ? Math.round(d.trailersWeek / goal * 100) : null;
     const week = new Date(d.weekStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const shorts = Array.isArray(d.shorts) ? d.shorts : [];
     const fulfil = typeof d.fulfillment === "number" ? Math.round(d.fulfillment * 1000) / 10 : null;
@@ -876,7 +877,7 @@
           <div class="loading-title">LOADING</div>
           <div class="loading-sub">Week of ${escapeHtml(week)}${d.sample ? " \u00B7 sample data" : ""}</div>
           <div class="loading-count"><span class="lbl">TRAILERS</span><span class="num metric-num">${formatNumberUI(d.trailersWeek)}</span>${goal ? `<span class="goal">/ ${formatNumberUI(goal)}</span><span class="pct">${pct}%</span>` : `<span class="goal">today ${formatNumberUI(d.trailersToday || 0)}</span>`}</div>
-          ${goal ? `<div class="loading-track"><div style="width:${pct}%"></div></div>` : ""}
+          ${goal ? `<div class="loading-track"><div style="width:${Math.min(100, pct)}%"></div></div>` : ""}
         </div>
         <div class="loading-shorts">
           <div class="loading-shorts-total"><div class="lbl">TOTAL SHORTS</div><div class="num metric-num">${formatNumberUI(d.shortsWeek)}<span class="unit">PCS</span></div><div class="sub">this week${fulfil !== null ? " \u00B7 " + fulfil + "% filled" : ""}</div></div>
