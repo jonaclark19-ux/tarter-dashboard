@@ -154,6 +154,25 @@ const paintColors = await src.evaluate(async () => {
   ];
 });
 check(paintColors.join(",") === "GREY,GREY,BLACK,GREY,GREY,BLACK,GREY,GREY", "currently painting = color where numbers were entered last: " + paintColors.join(","));
+// --- paint / tanks header values are found by label, so an inserted column doesn't shift them
+const headers = await src.evaluate(async () => {
+  await window.__t.ensureXlsx();
+  const paint = (pad) => {
+    const row = [null, null, null, null, null, ...Array(pad).fill(null), "EMPLOYEES", 9, "UPLH GOAL", 90, "UPLH", 44];
+    return window.__t.buildPaintFromSheet(XLSX.utils.aoa_to_sheet([row, ["GREY"], ["P1", 10], ["TOTAL", 10, null, null, "TOTAL"]]), null, "2026-10-06", []);
+  };
+  const tanks = (extra) => {
+    const head = ["DATE", "EMPLOYEES", ...(extra ? ["NOTES"] : []), "ATTAINMENT", "UPLH", "UPLH GOAL"];
+    const vals = [new Date(2026, 9, 6), 6, ...(extra ? ["x"] : []), 0.5, 2.1, 4.38];
+    const w = [];
+    const d = window.__t.buildTanksFromSheet(XLSX.utils.aoa_to_sheet([head, vals], { cellDates: true }), "2026-10-06", w);
+    return d ? [d.headline.active, d.stats.find((x) => x.label === "UPLH").value, d.stats.find((x) => x.label === "GOAL").value].join("/") : "null " + w.join(";");
+  };
+  const p0 = paint(0), p1 = paint(1);
+  return { paint: [p0, p1].map((d) => d ? [d.headline.active, d.stats.map((x) => x.value).join(",")].join("|") : "null"), tanks: [tanks(false), tanks(true)] };
+});
+check(headers.paint[0] === headers.paint[1] && /^9\|/.test(headers.paint[0]) && /44/.test(headers.paint[0]) && /90/.test(headers.paint[0]), "paint header by label, column inserted: " + headers.paint.join(" vs "));
+check(headers.tanks.every((t) => t === "6/2.1/4.38"), "tanks header by label, column inserted: " + headers.tanks.join(" vs "));
 check(ld.days.join(",") === "2026-09-28,2026-09-29", "sign-off tabs read by date, impossible 9-31 skipped: " + ld.days.join(","));
 check(ld.week.trailersWeek === 4 && ld.week.piecesWeek === 672 && ld.week.shortsWeek === 31, "week totals from the tab summaries");
 const top = Object.fromEntries(ld.week.shorts);

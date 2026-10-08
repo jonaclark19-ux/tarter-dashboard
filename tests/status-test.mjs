@@ -54,14 +54,14 @@ check(/10[01]% TO UPLH GOAL \u2713 10:00 AM/.test(v.cards[0]), "pace at the save
 check(!/BEHIND|CRITICAL|MISSING/.test(v.cards[0]), "on-pace crew has no alert");
 check(!v.footerShown, "TV has no footer bar");
 
-// Same numbers saved at 8:00, viewed at 11:00: still the 8:00 pace, not a collapsing one.
+// Saved at 8:00 (100% then), viewed at 11:00 with no new save: measured now, so it drops to 50%.
 v = await view("2026-10-06T11:00:00", feed("2026-10-06", "2026-10-06T08:00:00", [dept("tanks", "TANKS", 7, 7, 40, 135, 1.25, 4.38)]));
-check(/ 8:00 AM/.test(v.cards[0]), "stale save keeps its own time: " + v.cards[0]);
+check(/50% TO UPLH GOAL \u2716 11:00 AM/.test(v.cards[0]), "pace at the current time drops without a save: " + v.cards[0]);
 
-// Thresholds: 70% -> amber BEHIND PACE, 50% -> red CRITICAL.
+// Thresholds: 70% -> amber BEHIND PACE, 50% -> red with no badge on the card.
 v = await view("2026-10-06T10:00:00", feed("2026-10-06", "2026-10-06T10:00:00", [dept("fab", "FAB", 4, 4, 1, 2, 1.46, 4.38), dept("tanks", "TANKS", 7, 7, 1, 2, 1.04, 4.38)]));
 check(/BEHIND PACE/.test(v.cards[0]), "70% pace is amber BEHIND PACE: " + v.cards[0]);
-check(/CRITICAL PACE/.test(v.cards[1]), "50% pace is red CRITICAL: " + v.cards[1]);
+check(!/CRITICAL/.test(v.cards[1]) && /5\d% TO UPLH GOAL \u2716/.test(v.cards[1]), "50% pace has no CRITICAL badge: " + v.cards[1]);
 check(/Lowest: TANKS/.test(v.top), "plant tile names the lowest department: " + v.top);
 
 // The pace runs from 5:00: at 5:40 (6% of the shift) 0.25 UPLH vs 4.38 = 90% -> green.

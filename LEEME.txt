@@ -44,15 +44,15 @@ DISEÑO (oficial desde 30-sep-2026)
     bajo. TO GOAL lo ajusta a la parte del turno ya trabajada (5:00 AM a
     3:30 PM): UPLH / % del turno / meta. Ej. a las 10 AM (48% del turno) un
     UPLH de 2.0 con meta 4.38 = 4.2 UPLH = 96%.
-    Se calcula a la hora del ÚLTIMO GUARDADO del Excel (3a línea: "✓ 8:00 AM"),
-    porque el UPLH solo cambia cuando alguien guarda. Corre en colores desde
-    las 5:00 AM (los primeros minutos varían mucho). Si el Excel no se ha
-    guardado en el turno, se calcula a la hora actual. Antes de las 5 AM
-    muestra "--"; al terminar el turno dice "Full shift" (= UPLH / meta).
+    Se calcula a la HORA ACTUAL (3a línea: "✓ 10:42 AM", se actualiza cada
+    minuto). El UPLH solo cambia cuando alguien guarda el Excel, así que el %
+    baja mientras no guarden: a propósito, para que reporten seguido. Corre en
+    colores desde las 5:00 AM (los primeros minutos varían mucho). Antes de
+    las 5 AM muestra "--"; al terminar el turno dice "Full shift" (= UPLH / meta).
   - ESTADO DE CADA TARJETA (etiqueta, borde y color del bloque UPLH), un solo
     criterio con el TO UPLH GOAL: verde 80%+ (ON PACE), amarillo 60-79%
-    (BEHIND PACE), rojo <60% (CRITICAL PACE). "GOAL MET" cuando la producción
-    llega a lo programado.
+    (BEHIND PACE), rojo <60% (sin etiqueta: solo borde y bloque UPLH en rojo).
+    "GOAL MET" cuando la producción llega a lo programado.
     Personal: "3 MISSING" en naranja, o en rojo si falta 25% o más; dura todo el
     turno. Fin de semana y días pasados nunca alertan. Celda de personal vacía:
     la tarjeta muestra "--" y no cuenta en el total de personal.
@@ -225,7 +225,16 @@ horario: revisa cada 15 s siempre y sin pantalla de fin de semana).
 ARCHIVOS
 --------
 index.html            la página del dashboard (fuente y TVs usan la misma)
-app.js                todo el código del dashboard (lectura de Excel, envío, TV)
+js/                   el código del dashboard, en partes (se cargan en este orden):
+  config.js           horarios, departamentos, datos de ejemplo
+  alert-engine.js     estado de cada tarjeta (pace, GOAL MET, faltan personas)
+  render.js           dibujo de tarjetas, anillos, KPIs, barra de LOADING
+  excel.js            ayudas para leer celdas, fechas y bloques por día
+  extractors.js       lectura de cada Excel: FAB, WELDING, PAINT, TANKS
+  parser.js           arma los datos de la planta (Board Info, LOADING)
+  main.js             estado de la página, reloj, modo TV y escala
+  sync.js             lectura automática de la carpeta, envío y TVs
+  start.js            arranca la página (siempre al final)
 api/publish.js        recibe los datos de la PC fuente
 api/feed-snapshot.js  entrega los datos a las TVs
 api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)
