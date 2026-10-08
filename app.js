@@ -1052,6 +1052,28 @@
     if (typeof XLSX === "undefined") return letter;
     return XLSX.utils.encode_col(XLSX.utils.decode_col(letter) + offset);
   }
+  /**
+   * Address of the value next to a label: scans rows fromRow..toRow, columns A..lastCol,
+   * for a text cell matching labelRe and returns the first non-empty cell up to 3 columns
+   * to its right (a text cell there is another label, so it stops). null when not found.
+   */
+  function findLabeledValue(sheet, labelRe, fromRow, toRow, lastCol) {
+    const last = XLSX.utils.decode_col(lastCol || "Z");
+    for (let r = fromRow; r <= toRow; r++) {
+      for (let c = 0; c <= last; c++) {
+        const t = getRawText(getCell(sheet, XLSX.utils.encode_col(c) + r)).trim();
+        if (!t || !labelRe.test(t)) continue;
+        for (let k = 1; k <= 3; k++) {
+          const addr = XLSX.utils.encode_col(c + k) + r;
+          const cell = getCell(sheet, addr);
+          if (!cell || cell.v === void 0 || cell.v === null || cell.v === "") continue;
+          if (typeof cell.v === "string" && /[A-Za-z]/.test(cell.v) && !ERROR_STRINGS.has(cell.v.trim()) && !/^\s*\d+\s*\/\s*\d+\s*$/.test(cell.v)) break;
+          return addr;
+        }
+      }
+    }
+    return null;
+  }
   function expectHeaderNear(sheet, addr, expectedSubstrings, warnings, context) {
     const header = getRawText(getCell(sheet, addr)).toLowerCase().trim();
     const expected = Array.isArray(expectedSubstrings) ? expectedSubstrings : [expectedSubstrings];
@@ -1532,11 +1554,21 @@
   function buildPaintFromSheet(sheet, weekAttainmentPct, selectedDateISO, warnings) {
     if (!sheet || typeof XLSX === "undefined") return null;
     const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
-    expectHeaderNear(sheet, "F1", ["employe", "present", "worker"], warnings, "PAINT headcount header");
-    const present = cellHeadcount(getCell(sheet, "G1"), warnings, "PAINT employees");
-    const uplhGoal = cellNumber(getCell(sheet, "I1"), warnings, "PAINT UPLH goal");
-    const uplh = cellNumber(getCell(sheet, "K1"), warnings, "PAINT daily UPLH");
-    const pctToGoal = cellNumber(getCell(sheet, "O1"), warnings, "PAINT pct to goal");
+    // The header values are found by their labels on the top rows, so an inserted column
+    // doesn't shift them; G1/I1/K1/O1 are the fallback when a label isn't there.
+    const headerAddr = (re, fallback, what) => {
+      const addr = findLabeledValue(sheet, re, 1, 3, "Z");
+      if (!addr) warnings.push("PAINT: " + what + " label not found - using " + fallback + ".");
+      return addr || fallback;
+    };
+    const presentAddr = headerAddr(/employe|present|worker/i, "G1", "EMPLOYEES");
+    const goalAddr = headerAddr(/uplh\s*goal|goal\s*uplh/i, "I1", "UPLH GOAL");
+    const uplhAddr = headerAddr(/^(?:daily\s*)?uplh\b(?!.*goal)/i, "K1", "UPLH");
+    const pctAddr = findLabeledValue(sheet, /(?:%|pct|percent)\s*(?:to\s*)?goal/i, 1, 3, "Z") || "O1";
+    const present = cellHeadcount(getCell(sheet, presentAddr), warnings, "PAINT employees");
+    const uplhGoal = cellNumber(getCell(sheet, goalAddr), warnings, "PAINT UPLH goal");
+    const uplh = cellNumber(getCell(sheet, uplhAddr), warnings, "PAINT daily UPLH");
+    const pctToGoal = cellNumber(getCell(sheet, pctAddr), warnings, "PAINT pct to goal");
     let totalsRow = null;
     let scheduled = null, actual = null, productionPct = null;
     // The totals row is the one labelled TOTAL in column A; "the last row with anything in
@@ -1565,7 +1597,7 @@
     else if (productionPct !== null) attainmentPct = Math.round(productionPct * 100);
     else if (pctToGoal !== null) {
       attainmentPct = Math.round(pctToGoal * 100);
-      warnings.push("PAINT: no painted/scheduled totals - DAILY ATT. uses the sheet's % to goal (O1).");
+      warnings.push("PAINT: no painted/scheduled totals - DAILY ATT. uses the sheet's % to goal.");
     }
     const NON_COLOR_LABELS = /* @__PURE__ */ new Set(["DOWNTIME", "DOWNTIME:", "SCRAP", "SCRAP:", "REASON", "REASON:", "TOTAL", "TOTAL:"]);
     const sectionScanLimit = totalsRow || range.e.r + 1;
@@ -1701,11 +1733,23 @@
       }
     }
     if (!foundSched || !foundTotal) warnings.push("TANKS: SCHEDULED PROD. / TOTAL PROD. labels not found - using the default rows.");
-    expectHeaderNear(sheet, colOffset(colStart, 1) + headerRow, ["employe", "present", "worker"], warnings, "TANKS headcount header");
-    const present = cellHeadcount(getCell(sheet, colOffset(colStart, 1) + valueRow), warnings, "TANKS employee count");
-    const attainmentRaw = cellNumber(getCell(sheet, colOffset(colStart, 2) + valueRow), warnings, "TANKS attainment");
-    const uplh = cellNumber(getCell(sheet, colOffset(colStart, 3) + valueRow), warnings, "TANKS UPLH");
-    const uplhGoal = cellNumber(getCell(sheet, colOffset(colStart, 4) + valueRow), warnings, "TANKS UPLH goal");
+    // Header columns by label (EMPLOYEES / ATTAINMENT / UPLH / UPLH GOAL), value on the row
+    // below; the usual positions 1-4 are the fallback.
+    const headerCol = (re, fallback, what) => {
+      for (let off = 0; off <= 7; off++) {
+        if (re.test(getRawText(getCell(sheet, colOffset(colStart, off) + headerRow)).trim())) return off;
+      }
+      warnings.push("TANKS: " + what + " header not found - using the default column.");
+      return fallback;
+    };
+    const presentCol = headerCol(/employe|present|worker/i, 1, "EMPLOYEES");
+    const attCol = headerCol(/attain|%\s*(?:to\s*)?(?:goal|sched)/i, 2, "ATTAINMENT");
+    const uplhCol = headerCol(/^(?:daily\s*)?uplh\b(?!.*goal)/i, 3, "UPLH");
+    const goalCol = headerCol(/uplh\s*goal|goal\s*uplh/i, 4, "UPLH GOAL");
+    const present = cellHeadcount(getCell(sheet, colOffset(colStart, presentCol) + valueRow), warnings, "TANKS employee count");
+    const attainmentRaw = cellNumber(getCell(sheet, colOffset(colStart, attCol) + valueRow), warnings, "TANKS attainment");
+    const uplh = cellNumber(getCell(sheet, colOffset(colStart, uplhCol) + valueRow), warnings, "TANKS UPLH");
+    const uplhGoal = cellNumber(getCell(sheet, colOffset(colStart, goalCol) + valueRow), warnings, "TANKS UPLH goal");
     let scheduled = cellNumber(getCell(sheet, colOffset(colStart, 5) + scheduledProdRow), warnings, "TANKS scheduled prod");
     let production = cellNumber(getCell(sheet, colOffset(colStart, 5) + totalProdRow), warnings, "TANKS total prod");
     let calcTankSched = 0;

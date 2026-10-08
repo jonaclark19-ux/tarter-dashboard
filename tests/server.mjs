@@ -78,7 +78,7 @@ export const server = http.createServer(async (req, res) => {
     // Expose the IIFE's internals so the publish logic can be driven directly.
     const js = fs.readFileSync(file, "utf8");
     const i = js.lastIndexOf("})();");
-    return res.end(js.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet };\n" + js.slice(i));
+    return res.end(js.slice(0, i) + "window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet, buildTanksFromSheet };\n" + js.slice(i));
   }
   fs.createReadStream(file).pipe(res);
 });
