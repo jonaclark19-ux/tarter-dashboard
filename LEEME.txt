@@ -74,6 +74,31 @@ DISEÑO (oficial desde 30-sep-2026)
 Tamaño manual (solo si alguna TV lo necesita; normalmente NO hace falta):
   agregar &scale=0.8 (u otro número entre 0.25 y 3) al final del link.
 
+DAILY PRODUCTION BOARD (junta de 8:30)
+--------------------------------------
+Link para la TV del board:
+  https://tarter-west-dashboard.vercel.app/board
+Vista de ejemplo con los datos del pizarrón del 09/22: /board-preview
+  - Muestra el DÍA HÁBIL ANTERIOR (lo que se revisa en la junta): el martes
+    muestra el lunes; el lunes muestra el viernes.
+  - Lo arma la misma PC fuente: vuelve a leer los Excel de FAB, WELDING,
+    PAINT y TANKS para ese día (attainment = actual / programado, efficiency =
+    UPLH / meta del Excel, personal presente / esperado) y el Load Sign Off
+    (in full %, piezas por carga, cargas, shorts de la semana).
+  - Lo que no está en ningún Excel lo escriben los supervisores en
+    "Daily Board Input.xlsx" (UNA hoja con el mismo diseño del board), en la
+    misma carpeta que los demás. Se lee por los nombres de las celdas (OT_FAB,
+    QUALITY_WELD...), no por posición. Sin ese archivo el board sale igual,
+    con esas celdas vacías y el aviso abajo.
+  - Días sin Recordable y el tema de seguridad salen de TV Board Info.xlsx
+    (como en las TVs). First Aid e Incident: fecha del último evento en el
+    Daily Board Input.
+  - Una columna cuyo LAST UPDATED es anterior al día mostrado sale con
+    "NOT UPDATED" y sus datos escritos en gris claro.
+  - ● = viene de los Excel de cada departamento; ○ = escrito en el Daily
+    Board Input. "NO DATA" = no hay bloque/pestaña de ese día en el Excel.
+  - Pruebas: tests/board-test.mjs (usa tests/board-input-sample.xlsx).
+
 QUÉ VER EN LA PC FUENTE
 -----------------------
 Abajo a la derecha, en la línea de estado, aparece:
@@ -225,6 +250,7 @@ horario: revisa cada 15 s siempre y sin pantalla de fin de semana).
 ARCHIVOS
 --------
 index.html            la página del dashboard (fuente y TVs usan la misma)
+board.html            Daily Production Board (TV de la junta), lee el mismo feed
 js/                   el código del dashboard, en partes (se cargan en este orden):
   config.js           horarios, departamentos, datos de ejemplo
   alert-engine.js     estado de cada tarjeta (pace, GOAL MET, faltan personas)
@@ -232,6 +258,8 @@ js/                   el código del dashboard, en partes (se cargan en este ord
   excel.js            ayudas para leer celdas, fechas y bloques por día
   extractors.js       lectura de cada Excel: FAB, WELDING, PAINT, TANKS
   parser.js           arma los datos de la planta (Board Info, LOADING)
+  board-data.js       datos del Daily Production Board (día anterior + Daily Board Input)
+  board.js            dibujo de board.html (no lo carga index.html)
   main.js             estado de la página, reloj, modo TV y escala
   sync.js             lectura automática de la carpeta, envío y TVs
   start.js            arranca la página (siempre al final)

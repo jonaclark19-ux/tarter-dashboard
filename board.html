@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Production Board</title>
+<style>
+  /* Built for a 75" 16:9 TV seen from 3-6 m. Everything scales with the screen (--u), so
+     1080p and 4K look the same with no scrolling. */
+  :root{--bg:#fff;--panel:#f5f6f8;--line:#dfe3e9;--ink:#141a26;--muted:#5b6475;--brand:#d42027;
+        --good:#15884a;--warn:#c27c00;--bad:#d42027;--none:#c9ced8;--u:min(1vh,.5625vw)}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;border-top:calc(var(--u)*.8) solid var(--brand);
+       font:calc(var(--u)*1.9)/1.2 "Segoe UI",system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}
+  .wrap{height:calc(100% - var(--u)*.8);padding:calc(var(--u)*1.4) calc(var(--u)*2.2);
+        display:grid;grid-template-rows:auto auto minmax(0,1fr) auto 24%;gap:calc(var(--u)*1)}
+  header{display:grid;grid-template-columns:auto auto 1fr auto;gap:calc(var(--u)*2);align-items:center}
+  .logo{height:calc(var(--u)*7);width:auto}
+  h1{margin:0;white-space:nowrap;font-size:calc(var(--u)*5);letter-spacing:.03em;font-weight:800;text-align:center}
+  .meta{color:var(--muted);font-size:calc(var(--u)*2)}
+  .meta b{color:var(--ink);font-size:calc(var(--u)*2.8);display:block;white-space:nowrap}
+  .safety{display:flex;gap:calc(var(--u)*1)}
+  .pill{background:var(--panel);border:1px solid var(--line);border-radius:calc(var(--u)*1);padding:calc(var(--u)*.6) calc(var(--u)*1.6);text-align:center;min-width:calc(var(--u)*13)}
+  .pill b{display:block;font-size:calc(var(--u)*3.8);line-height:1}
+  .pill span{font-size:calc(var(--u)*1.3);color:var(--muted);text-transform:uppercase;font-weight:600}
+  .topic{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fdecec;color:#8f1117;border-left:calc(var(--u)*.6) solid var(--bad);
+         padding:calc(var(--u)*.6) calc(var(--u)*1.4);border-radius:calc(var(--u)*.6);font-weight:700;font-size:calc(var(--u)*2.4)}
+  .topic.none{background:var(--panel);color:var(--muted);border-left-color:var(--none)}
+  .grid-box{min-height:0;overflow:hidden}
+  table{width:100%;height:100%;table-layout:fixed;border-collapse:separate;border-spacing:calc(var(--u)*.5)}
+  th{font-size:calc(var(--u)*1.9);text-transform:uppercase;letter-spacing:.03em;font-weight:800;padding:0 calc(var(--u)*.3);text-align:center;height:calc(var(--u)*3.2);line-height:1.05}
+  th small{display:block;font-size:calc(var(--u)*1.2);color:var(--warn);letter-spacing:0}
+  th.row{text-align:left;background:var(--panel);border-radius:calc(var(--u)*.8);padding:0 calc(var(--u)*1.2);width:12%;font-size:calc(var(--u)*1.8)}
+  td{background:var(--panel);border:1px solid var(--line);border-radius:calc(var(--u)*.8);text-align:center;position:relative;
+     border-top:calc(var(--u)*.7) solid var(--none);padding:0 calc(var(--u)*.4);overflow:hidden}
+  td.good{border-top-color:var(--good)} td.warn{border-top-color:var(--warn)} td.bad{border-top-color:var(--bad)}
+  td .v{font-size:calc(var(--u)*4.2);font-weight:800;line-height:1;white-space:nowrap}
+  td.good .v{color:var(--good)} td.warn .v{color:var(--warn)} td.bad .v{color:var(--bad)}
+  td .t{font-size:calc(var(--u)*1.6);font-weight:700;line-height:1.1;display:block;text-align:left;word-break:break-word}
+  td .nd{font-size:calc(var(--u)*1.4);font-weight:700;color:var(--muted)}
+  td ul{list-style:none;margin:0;padding:0 calc(var(--u)*.6);font-size:calc(var(--u)*1.6);font-weight:700;text-align:left;line-height:1.1}
+  td .src{position:absolute;right:calc(var(--u)*.6);bottom:calc(var(--u)*.2);font-size:calc(var(--u)*1.3);color:var(--muted)}
+  td.empty{background:transparent;border:1px dashed var(--line)}
+  td.stale{opacity:.4}
+  .legend{display:flex;gap:calc(var(--u)*2);font-size:calc(var(--u)*1.4);color:var(--muted);justify-content:flex-end}
+  .legend .alert{color:var(--bad);font-weight:700;margin-right:auto}
+  .bottom{display:grid;grid-template-columns:1fr 2fr 1fr;gap:calc(var(--u)*1.2);min-height:0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:calc(var(--u)*1);padding:calc(var(--u)*1.2) calc(var(--u)*1.6);overflow:hidden}
+  .card h2{margin:0 0 calc(var(--u)*.6);font-size:calc(var(--u)*2);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+  .big{font-size:calc(var(--u)*7.5);font-weight:800;line-height:1}
+  .big.good{color:var(--good)} .big.warn{color:var(--warn)} .big.bad{color:var(--bad)}
+  .kv{display:grid;grid-template-columns:1fr;font-size:calc(var(--u)*2.05)}
+  .kv div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:calc(var(--u)*.1) 0;gap:calc(var(--u)*1)}
+  .kv .n{color:var(--muted);margin-right:calc(var(--u)*.8)}
+  .kv .muted{color:var(--muted);font-size:calc(var(--u)*1.6);border:0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2.4)}
+  .wait{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:calc(var(--u)*2);
+        background:var(--bg);font-size:calc(var(--u)*4);font-weight:800;color:var(--muted);text-align:center;padding:5vh}
+  .wait small{font-size:calc(var(--u)*2);font-weight:400}
+  .wait[hidden]{display:none}
+  /* Laptop / phone: allow scrolling and fixed sizes. */
+  @media (max-aspect-ratio:4/3){
+    :root{--u:7px} body{overflow:auto} .wrap{height:auto;grid-template-rows:none}
+    header{grid-template-columns:auto 1fr} h1{grid-column:1/-1;order:-1} .safety{grid-column:1/-1}
+    .grid-box{overflow-x:auto} table{min-width:900px;height:auto} td{height:70px}
+    .bottom,.two{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" src="tarter-logo.png" alt="Tarter">
+    <div class="meta" id="meta"></div>
+    <h1>DAILY PRODUCTION BOARD</h1>
+    <div class="safety" id="safety"></div>
+  </header>
+  <div class="topic" id="topic"></div>
+  <div class="grid-box"><table id="grid"></table></div>
+  <div class="legend" id="legend"></div>
+  <div class="bottom" id="bottom"></div>
+</div>
+<div class="wait" id="wait">WAITING FOR DATA<small id="wait-why">Connecting to the dashboard feed…</small></div>
+<script src="js/board.js"></script>
+</body>
+</html>

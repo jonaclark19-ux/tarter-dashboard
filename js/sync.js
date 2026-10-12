@@ -27,6 +27,10 @@ var sync = {
   lastError: null,
   diagnostic: [],
   parsedCache: {},
+  // Daily Production Board (previous workday): its own parse cache, the input workbook, the result.
+  boardParsedCache: {},
+  boardInput: null,
+  boardData: null,
   lastCheckAt: 0,
   sourceSavedAt: null,
   note: "",
@@ -198,6 +202,7 @@ async function applyFileSet(files, sourceLabel) {
   }
   result.safety = safetyFor(sync.board, targetDate);
   result.loading = loadingFor(sync.loadingBooks, targetDate);
+  result.board = sync.boardData || null;
   state.result = result;
   state.statusTone = "success";
   sync.fileLabel = sourceLabel || "";
@@ -468,16 +473,21 @@ async function pullFromFolder(force) {
   // workbook next to the department files. Optional: no file, no safety tile.
   const board = scan.candidates.find((c) => BOARD_INFO_RE.test(c.name)) || null;
   const boardSig = board ? board.name + ":" + board.modified + ":" + board.file.size : "";
+  // Daily Board Input: what supervisors type for the Daily Production Board. Optional.
+  const input = scan.candidates.find((c) => BOARD_INPUT_RE.test(c.name) && !COPY_FILE_RE.test(c.name.split("/").pop()) && !ARCHIVE_DIR_RE.test(c.name)) || null;
+  const inputSig = input ? input.name + ":" + input.modified + ":" + input.file.size : "";
+  // The board shows the previous workday, so its week can start in an earlier month's file.
+  const reportDay = previousWorkdayISO(todayISO());
   // Loading: the "Load Sign Off <Month> <year>" workbook(s) covering Monday..today.
   const loadDay = syncTargetDateISO();
   const loadCands = scan.candidates.filter((c) => LOADING_FILE_RE.test(c.name));
   const loadFiles = [];
-  for (const iso of [weekMondayISO(loadDay), loadDay]) {
+  for (const iso of [weekMondayISO(loadDay), loadDay, weekMondayISO(reportDay), reportDay]) {
     const f = loadingFileFor(loadCands, iso);
     if (f && loadFiles.indexOf(f) === -1) loadFiles.push(f);
   }
   const loadSig = loadFiles.map((f) => f.name + ":" + f.modified + ":" + f.file.size).join("|");
-  const signature = chosen.map((c) => c.cand.name + ":" + c.cand.modified + ":" + c.cand.file.size).join("~") + "~board:" + boardSig + "~load:" + loadSig;
+  const signature = chosen.map((c) => c.cand.name + ":" + c.cand.modified + ":" + c.cand.file.size).join("~") + "~board:" + boardSig + "~load:" + loadSig + "~input:" + inputSig + "~report:" + reportDay;
   if (!force && signature === sync.signature) return false;
   const books = [];
   for (const f of loadFiles) {
@@ -500,6 +510,18 @@ async function pullFromFolder(force) {
     } catch (err) {
       sync.board = null;
       context.push("Could not read " + board.name + ": " + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  if (!input) sync.boardInput = null;
+  else if (!sync.boardInput || sync.boardInput.sig !== inputSig) {
+    try {
+      await ensureXlsx();
+      sync.boardInput = { sig: inputSig, fileName: input.name, savedAt: input.modified, values: parseBoardInput(await input.file.arrayBuffer()) };
+    } catch (err) {
+      // Keep the last good read (OneDrive may hold the file for a moment) and retry.
+      if (sync.boardInput) sync.boardInput.sig = null;
+      context.push("Could not read " + input.name + ": " + (err && err.message ? err.message : String(err)));
     }
   }
 
@@ -526,6 +548,13 @@ async function pullFromFolder(force) {
     throw new Error("The department workbooks were found but none could be opened.");
   }
   try {
+    await buildBoardData(chosen, files, reportDay, force);
+  } catch (err) {
+    // The board is extra: whatever goes wrong there, the TVs still get their numbers.
+    sync.boardData = null;
+    context.push("Daily Production Board not built: " + (err && err.message ? err.message : String(err)));
+  }
+  try {
     await applyFileSet(files, chosen.map((c) => c.source.label).join(", "));
   } catch (err) {
     sync.diagnostic = sync.diagnostic.concat(context);
@@ -536,6 +565,39 @@ async function pullFromFolder(force) {
   // A file that couldn't be read leaves the signature unset, so the next check retries it.
   sync.signature = readFailed ? null : signature;
   return true;
+}
+
+/**
+ * The Daily Production Board for the previous workday: the department workbooks parsed
+ * again for that day (each kept until its file changes), plus loading and the input
+ * workbook. Never breaks the TV dashboard: a failure leaves the board with a reason.
+ */
+async function buildBoardData(chosen, files, reportDay, force) {
+  const boardFiles = [];
+  for (const pick of chosen) {
+    const fileSig = pick.cand.name + ":" + pick.cand.modified + ":" + pick.cand.file.size;
+    const hit = sync.boardParsedCache[pick.cand.name];
+    if (!force && hit && hit.signature === fileSig && hit.date === reportDay) {
+      boardFiles.push({ fileName: pick.cand.name, signature: fileSig, cached: hit, modifiedAt: pick.cand.modified });
+      continue;
+    }
+    const same = files.find((f) => f.fileName === pick.cand.name && f.buffer && f.signature === fileSig);
+    try {
+      const buffer = same ? same.buffer : await pick.cand.file.arrayBuffer();
+      boardFiles.push({ fileName: pick.cand.name, signature: fileSig, modifiedAt: pick.cand.modified, buffer });
+    } catch (err) {
+      if (hit && hit.date === reportDay) boardFiles.push({ fileName: pick.cand.name, signature: null, cached: hit, modifiedAt: pick.cand.modified });
+    }
+  }
+  let deptResult = null;
+  try {
+    deptResult = await buildDashboardFromFiles(boardFiles, reportDay);
+    sync.boardParsedCache = deptResult.parsed || {};
+  } catch (err) {
+    deptResult = { departments: [], missing: [], warnings: ["Board " + reportDay + ": " + (err && err.message ? err.message : String(err))] };
+  }
+  const input = sync.boardInput;
+  sync.boardData = buildBoard(reportDay, deptResult, sync.loadingBooks, input ? input.values : null, input);
 }
 
 function scheduleNextSync(elapsedMs) {
@@ -807,6 +869,7 @@ function publishPayload(result) {
     missing: result.missing || [],
     safety: result.safety || null,
     loading: result.loading || null,
+    board: result.board || null,
     sourceError: typeof result.sourceError === "string" ? result.sourceError : null,
     timeZone: plantTimeZone || deviceTimeZone()
   };

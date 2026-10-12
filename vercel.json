@@ -46,6 +46,16 @@
   ],
   "redirects": [
     {
+      "source": "/board",
+      "destination": "/board.html",
+      "permanent": false
+    },
+    {
+      "source": "/board-preview",
+      "destination": "/board.html?preview=1",
+      "permanent": false
+    },
+    {
       "source": "/tv-preview",
       "destination": "/?src=/api/feed-snapshot&tv=1&preview=1",
       "permanent": false

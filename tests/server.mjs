@@ -73,7 +73,7 @@ export const server = http.createServer(async (req, res) => {
   if (url.searchParams.get("__test") === "1" && file.endsWith("index.html")) {
     // Test-only copy: after the app's scripts, expose its internals so the publish
     // logic can be driven directly (the files share one global scope).
-    const hook = "<script>window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet, buildTanksFromSheet };</script>";
+    const hook = "<script>window.__t = { publishSnapshot, publishState, sync, state, plantNow, setPlantTimeZone, missingReason, fetchWithTimeout, renderDeptGrid, ensureXlsx, parseBoardInfo, safetyFor, safetyDays, parseLoadSignOff, loadingFor, parseShortProducts, buildPaintFromSheet, buildTanksFromSheet, parseBoardInput, buildBoard, previousWorkdayISO, pullFromFolder, publishPayload };</script>";
     return res.end(fs.readFileSync(file, "utf8").replace('<script src="js/start.js"></script>', '<script src="js/start.js"></script>' + hook));
   }
   fs.createReadStream(file).pipe(res);
