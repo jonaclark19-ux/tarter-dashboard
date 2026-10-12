@@ -108,6 +108,7 @@ Vista de ejemplo con los datos del pizarrón del 09/22: /board-preview
        Nombre: tarter-west-board (el link queda tarter-west-board.vercel.app).
     2. Settings -> Environments -> Production -> Branch Tracking: poner
        claude/optimistic-knuth-mysqkt (así ese link sigue a la rama del board).
+       En pantallas viejas de Vercel está en Settings -> Git -> Production Branch.
     3. Settings -> Environment Variables (Production):
          SUPABASE_SERVICE_ROLE_KEY = la misma llave secreta del otro proyecto
          SNAPSHOT_ROW_ID           = 2
