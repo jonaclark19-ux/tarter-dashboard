@@ -36,11 +36,13 @@ globalThis.fetch = async (url, opts = {}) => {
   if (key !== process.env.SUPABASE_SERVICE_ROLE_KEY) return new Response('{"message":"bad key"}', { status: 401 });
   if ((opts.method || "GET") === "POST") {
     const body = JSON.parse(opts.body);
+    db.lastRowId = body.id;
     db.row = { data: body.data, source_label: body.source_label, updated_at: body.updated_at };
     db.writes++;
     return new Response(null, { status: 201 });
   }
   db.reads++;
+  db.lastReadUrl = u;
   return new Response(JSON.stringify(db.row ? [db.row] : []), { status: 200, headers: { "content-type": "application/json" } });
 };
 

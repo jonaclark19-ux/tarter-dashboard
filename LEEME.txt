@@ -99,6 +99,37 @@ Vista de ejemplo con los datos del pizarrón del 09/22: /board-preview
     Board Input. "NO DATA" = no hay bloque/pestaña de ese día en el Excel.
   - Pruebas: tests/board-test.mjs (usa tests/board-input-sample.xlsx).
 
+  MIENTRAS SE TERMINA: PROYECTO DE VERCEL SEPARADO
+  El board vive en la rama claude/optimistic-knuth-mysqkt y se publica en un
+  segundo proyecto de Vercel con su propio link. El dashboard de las TVs
+  (main, tarter-west-dashboard) no cambia.
+  Crearlo (una sola vez):
+    1. Vercel -> Add New -> Project -> importar el repo tarter-dashboard.
+       Nombre: tarter-west-board (el link queda tarter-west-board.vercel.app).
+    2. Settings -> Environments -> Production -> Branch Tracking: poner
+       claude/optimistic-knuth-mysqkt (así ese link sigue a la rama del board).
+    3. Settings -> Environment Variables (Production):
+         SUPABASE_SERVICE_ROLE_KEY = la misma llave secreta del otro proyecto
+         SNAPSHOT_ROW_ID           = 2
+       SNAPSHOT_ROW_ID=2 hace que este proyecto lea y escriba su propio
+       renglón en Supabase: nunca pisa lo que ven las TVs (renglón 1). Tampoco
+       escribe en la tabla de tiempos.
+    4. Redeploy.
+  Usarlo:
+    - En la PC fuente, abrir https://tarter-west-board.vercel.app/ en OTRA
+      ventana del navegador y conectar la MISMA carpeta (Connect Folder). Esa
+      ventana publica solo para el board. La del dashboard normal sigue
+      adelante y visible como siempre; la del board puede quedar atrás (sus
+      datos son del día anterior, un minuto de retraso no importa).
+    - Agregar también tarter-west-board.vercel.app a "Mantener siempre activos
+      estos sitios" (Chrome) / "Nunca poner en suspensión" (Edge).
+    - TV de la junta: https://tarter-west-board.vercel.app/board
+  Si la línea de estado de esa ventana dice "TVs NOT updated: HTTP ...", el
+  mensaje dice qué rechazó Supabase (por ejemplo, si la tabla solo acepta el
+  renglón 1).
+  Cuando esté listo: se une la rama a main, se borra el proyecto separado y
+  /board queda en el link de siempre.
+
 QUÉ VER EN LA PC FUENTE
 -----------------------
 Abajo a la derecha, en la línea de estado, aparece:

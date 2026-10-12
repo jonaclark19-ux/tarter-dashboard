@@ -35,6 +35,17 @@ assert.notEqual(r.body.heartbeatAt, beat1);
 // garbage changedAt falls back to now
 await post({ result: fixture, changedAt: "nope" });
 r = await get(); assert.ok(Number.isFinite(Date.parse(r.body.updatedAt)));
+// default deployment uses row 1; SNAPSHOT_ROW_ID=2 (separate board project) uses its own row
+assert.equal(db.lastRowId, 1); assert.match(db.lastReadUrl, /id=eq\.1$/);
+process.env.SNAPSHOT_ROW_ID = "2";
+const logsBefore = db.change_log.length;
+await post({ result: Object.assign({}, fixture, { selectedDate: fixture.selectedDate }), changed: true, changedAt: new Date().toISOString() });
+await get();
+assert.equal(db.lastRowId, 2, "separate deployment writes row 2"); assert.match(db.lastReadUrl, /id=eq\.2$/);
+assert.equal(db.change_log.length, logsBefore, "only the live feed writes the timing log");
+process.env.SNAPSHOT_ROW_ID = "nope";
+await get(); assert.match(db.lastReadUrl, /id=eq\.1$/, "bad value falls back to row 1");
+delete process.env.SNAPSHOT_ROW_ID;
 // wrong key message
 process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_publishable_abc";
 r = await get(); assert.equal(r.status, 503); assert.match(r.body.message, /publishable/);
