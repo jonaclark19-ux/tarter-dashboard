@@ -42,6 +42,9 @@ DISEÑO (oficial desde 30-sep-2026)
     PRODUCTO-CANTIDAD, ej. "SO1347500 EWBL66-2,GUT22-1"); se muestran los 6
     con más piezas. Meta semanal de trailers: 16 (se puede cambiar con
     &loadgoal=N en el link).
+    El cuadro de TOTAL SHORTS cambia de color según el % FILLED (como se ve
+    en pantalla): verde 98% o más, amarillo 95% a 97.9%, rojo 94.9% o menos.
+    Los números de cada producto siguen en rojo: son piezas que salieron cortas.
   - Anillo TO UPLH GOAL (en lugar de WEEK, en cada departamento): % de la meta de
     UPLH según la hora del día. El UPLH del Excel divide la producción entre
     el turno COMPLETO (personas x 10 h), así que a media mañana siempre se ve

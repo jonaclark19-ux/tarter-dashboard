@@ -628,6 +628,8 @@ function renderLoadingBar() {
   const week = new Date(d.weekStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const shorts = Array.isArray(d.shorts) ? d.shorts : [];
   const fulfil = typeof d.fulfillment === "number" ? Math.round(d.fulfillment * 1000) / 10 : null;
+  // Graded on the % as shown, so 97.95 (shown 98%) is green like the number says.
+  const fillTone = fulfil === null ? "red" : fulfil >= 98 ? "green" : fulfil >= 95 ? "amber" : "red";
   el.style.display = "block";
   el.innerHTML = `
     <div class="loading-strip">
@@ -637,7 +639,7 @@ function renderLoadingBar() {
         <div class="loading-count"><span class="lbl">TRAILERS</span><span class="num metric-num">${formatNumberUI(d.trailersWeek)}</span>${goal ? `<span class="goal">/ ${formatNumberUI(goal)}</span><span class="pct">${pct}%</span>` : `<span class="goal">today ${formatNumberUI(d.trailersToday || 0)}</span>`}</div>
         ${goal ? `<div class="loading-track"><div style="width:${Math.min(100, pct)}%"></div></div>` : ""}
       </div>
-      <div class="loading-shorts">
+      <div class="loading-shorts fill-${fillTone}">
         <div class="loading-shorts-total"><div class="lbl">TOTAL SHORTS</div><div class="num metric-num">${formatNumberUI(d.shortsWeek)}<span class="unit">PCS</span></div><div class="sub">this week${fulfil !== null ? " \u00B7 " + fulfil + "% filled" : ""}</div></div>
         <div class="loading-shorts-top">
         <div class="loading-shorts-head">TOP ${Math.min(6, shorts.length) || 6} SHORT PRODUCTS \u00B7 PCS</div>
