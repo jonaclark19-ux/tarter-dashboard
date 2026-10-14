@@ -551,6 +551,19 @@ function scheduleNextSync(elapsedMs) {
   sync.timer = setTimeout(() => { syncNow(false); }, wait);
 }
 
+// A worker's timer keeps running at full speed in a hidden or locked tab, where the
+// page's own setTimeout above can be delayed by minutes: when a check is overdue, the
+// worker's tick runs it. (A PC that goes to sleep still stops everything.)
+var bgTicker = null;
+function startBackgroundTicker() {
+  if (bgTicker || typeof Worker !== "function") return;
+  try { bgTicker = new Worker("js/tick-worker.js"); } catch (err) { bgTicker = null; return; }
+  bgTicker.onmessage = () => {
+    if (sync.mode === "off" || sync.busy || !sync.nextAt) return;
+    if (Date.now() >= sync.nextAt + 1e3) syncNow(false);
+  };
+}
+
 // Screen Wake Lock: while this page is visible with a live source connected, the
 // browser keeps the display on and Windows from going to sleep - no power settings
 // or admin rights needed. The browser drops the lock when the tab is hidden; it is
@@ -951,6 +964,7 @@ function wireSyncControls() {
 
 async function bootstrapAutoSync(snap) {
   wireSyncControls();
+  startBackgroundTicker();
   // Polling can be carried by an exported TV page or overridden in the URL.
   // This keeps a TV on the intended cadence instead of silently falling back to the HTML default.
   const intervalSelect = document.getElementById("sync-interval-input");
