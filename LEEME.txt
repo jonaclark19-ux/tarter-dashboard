@@ -195,6 +195,12 @@ REGLAS PARA QUE NO FALLE
      siempre activos estos sitios" -> agregar tarter-west-dashboard.vercel.app.
      Edge: Configuración -> Sistema y rendimiento -> "Nunca poner en suspensión
      estos sitios" -> agregar el mismo sitio.
+   - Windows: Configuración -> Sistema -> Inicio/apagado y batería ->
+     "Suspender" en NUNCA (con corriente). La pantalla SÍ se puede apagar o
+     bloquear: el dashboard sigue leyendo y enviando con la pantalla
+     bloqueada, minimizado o en otra pestaña (usa un reloj en segundo plano
+     que el navegador no frena). Lo único que lo detiene es que la PC se
+     suspenda o se apague.
    - Al conectar la carpeta, en el aviso de permiso elegir "Permitir en cada
      visita" (si aparece), así después de reiniciar no hay que volver a dar
      clic en Reconnect Folder.
