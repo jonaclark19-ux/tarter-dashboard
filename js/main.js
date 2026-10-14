@@ -29,6 +29,10 @@ var TV_SCALE_MAX = 3;
 // This flag is only ever true in kiosk/TV mode (enterTvMode), never for the normal
 // admin view someone might have windowed on a desktop monitor.
 var IS_TV_MODE = false;
+// /computer (&pc=1): the TV board for office PCs. Same page and fit as the TVs, but sized
+// to the browser window only - a maximized desktop browser also nearly fills the screen
+// width, and taking screen.height there (taskbar and toolbars included) cut the bottom off.
+var IS_PC_MODE = /[?&]pc=1(&|$)/.test(location.search);
 function clampTvScale(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 1;
@@ -65,7 +69,7 @@ function rawViewportSize() {
   // windowed desktop browser, where screen.width is the whole monitor and would be
   // wrong to scale the page to.
   const nearFullscreen = window.screen && window.outerWidth && window.outerWidth >= window.screen.width * 0.95;
-  if (IS_TV_MODE && nearFullscreen && window.screen.width > winW) {
+  if (IS_TV_MODE && !IS_PC_MODE && nearFullscreen && window.screen.width > winW) {
     return { w: Math.round(window.screen.width), h: Math.round(window.screen.height) };
   }
   return { w: winW, h: winH };

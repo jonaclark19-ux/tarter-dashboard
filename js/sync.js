@@ -376,6 +376,8 @@ function screenName() {
   return id;
 }
 function ackSeen(changedAt) {
+  // Office PCs stay out of the TV timing table.
+  if (IS_PC_MODE) return;
   try {
     const url = new URL("seen", new URL(sync.url, location.href));
     fetchWithTimeout(url.href, {
