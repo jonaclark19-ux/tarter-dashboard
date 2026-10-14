@@ -25,6 +25,10 @@ Todas las demás pantallas / TVs (link corto):
 Con nombre de pantalla (para la tabla de tiempos):
   https://tarter-west-dashboard.vercel.app/tv/Soldadura
 (El link largo ?src=/api/feed-snapshot&tv=1 sigue funcionando igual.)
+Computadores de oficina (la vista de TV ajustada a la ventana del navegador;
+no se corta abajo y se re-ajusta si cambian el tamaño de la ventana; no
+aparece en la tabla de tiempos):
+  https://tarter-west-dashboard.vercel.app/computer
 
 DISEÑO (oficial desde 30-sep-2026)
   - Cuadro de SEGURIDAD: días sin incidentes + tema del día, leídos de

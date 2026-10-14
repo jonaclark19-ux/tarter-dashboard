@@ -56,6 +56,11 @@
       "permanent": false
     },
     {
+      "source": "/computer",
+      "destination": "/?src=/api/feed-snapshot&tv=1&pc=1",
+      "permanent": false
+    },
+    {
       "source": "/tv/:screen",
       "destination": "/?src=/api/feed-snapshot&tv=1&screen=:screen",
       "permanent": false
