@@ -132,6 +132,11 @@ PROTECCIONES AUTOMÁTICAS
   suman dos veces. TANKS busca las filas SCHEDULED PROD. / TOTAL PROD. por su
   texto (agregar un producto ya no corre los números). PAINT busca la fila
   TOTAL por su texto; el downtime suma todos los rangos de cada fila.
+- PAINT downtime: se suman TODOS los cambios de color de la sección DOWNTIME
+  (30 + 35 min = "1 HR 5 MINS"). Sirven "9:05AM-9:55am", "6:45-7:00",
+  "3PM-3:15PM" y "9:10am to 9:40am". Si la hora quedó en la fila de abajo
+  ("COLOR CHANGE: BROWN-RED" y debajo "3PM-3:15PM"), se junta con esa fila.
+  Un rango necesita minutos o AM/PM (un "2-3" de piezas no cuenta como horas).
 - Mensajes en la columna ACTUAL (FAB y WELDING): si en vez de un número se
   escribe un texto (ej. fila "Bulk Gas" con "Gas Issues"), sale en la tarjeta
   en el cuadro naranja: "Gas Issues — Bulk Gas". En WELDING vale en cualquier
