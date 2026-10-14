@@ -67,13 +67,18 @@ function buildNewBlockFormat(sheet, selectedDateISO, warnings, opts) {
   let forecast = totals.forecast, actual = totals.actual;
   const materialShortageParts = totals.shortages;
   const notes = [];
-  if (opts.id === "fab") {
-    const issueLines = (totals.issues || []).map((issue) => issue.message + (issue.parts.length ? " — " + issue.parts.join(" · ") : ""));
-    const shortageOnly = materialShortageParts.filter((part) => !(totals.issues || []).some((issue) => issue.parts.indexOf(part) !== -1));
-    if (shortageOnly.length) issueLines.push("MATERIAL — " + shortageOnly.join(" · "));
-    if (issueLines.length) notes.push({ type: "warning", label: "DOWNTIME / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
-  } else if (opts.id === "welding" && materialShortageParts.length) {
-    notes.push({ type: "warning", label: "MATERIAL / ISSUES", content: materialShortageParts.join(" · "), customColor: "#D97706" });
+  if (opts.id === "fab" || opts.id === "welding") {
+    const issues = totals.issues || [];
+    const issueLines = issues.map((issue) => issue.message + (issue.parts.length ? " — " + issue.parts.join(" · ") : ""));
+    const shortageOnly = materialShortageParts.filter((part) => !issues.some((issue) => issue.parts.indexOf(part) !== -1));
+    if (opts.id === "fab") {
+      if (shortageOnly.length) issueLines.push("MATERIAL — " + shortageOnly.join(" · "));
+      if (issueLines.length) notes.push({ type: "warning", label: "DOWNTIME / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
+    } else {
+      // WELDING kept its label and its bare list of short parts; typed messages go first.
+      if (shortageOnly.length) issueLines.push(shortageOnly.join(" · "));
+      if (issueLines.length) notes.push({ type: "warning", label: "MATERIAL / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
+    }
   }
   const expected = opts.expected;
   let attainmentPct;
@@ -369,6 +374,27 @@ function pickPaintColor(dateISO, sections) {
   mem.current = current;
   return current;
 }
+// Every time range in a PAINT downtime line: "6:45–7:00", "9:10 - 9:40 and 1:00-1:20",
+// "9:10am to 9:40am", "3PM-3:15PM". A range needs minutes or AM/PM on at least one
+// side, so a part count like "EWBL66-2" or "2-3" is never read as hours.
+function paintDowntimeRanges(text) {
+  const re = /(?<![\d:])(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?(?![\d:])/gi;
+  const out = [];
+  for (const t of text.matchAll(re)) {
+    if (t[2] === void 0 && t[5] === void 0 && !t[3] && !t[6]) continue;
+    const toMin = (h, m, ap) => { h = parseInt(h, 10) % 12; if (ap && /^p/i.test(ap)) h += 12; else if (!ap && h < SHIFT_START_HOUR) h += 12; return h * 60 + parseInt(m || "0", 10); };
+    let mins = toMin(t[4], t[5], t[6] || t[3]) - toMin(t[1], t[2], t[3] || t[6]);
+    if (mins < 0) mins += 12 * 60;
+    if (mins > 0 && mins < 12 * 60) out.push({ text: t[0], mins });
+  }
+  return out;
+}
+/** 25 -> "25 MINS", 65 -> "1 HR 5 MINS", 120 -> "2 HRS". */
+function formatDowntimeMins(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return m + " MINS";
+  return h + (h === 1 ? " HR" : " HRS") + (m ? " " + m + " MINS" : "");
+}
 function buildPaintFromSheet(sheet, weekAttainmentPct, selectedDateISO, warnings) {
   if (!sheet || typeof XLSX === "undefined") return null;
   const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
@@ -469,18 +495,15 @@ function buildPaintFromSheet(sheet, weekAttainmentPct, selectedDateISO, warnings
         continue;
       }
       if (aNorm === "" || aNorm === "REASON" || aNorm === "REASON:") continue;
-      const fullText = (cellA + " " + (cellText(getCell(sheet, "B" + rowNum)) || "") + " " + (cellText(getCell(sheet, "C" + rowNum)) || "") + " " + (cellText(getCell(sheet, "Q" + rowNum)) || "")).trim();
-      // Every range on the row counts: "6:45–7:00", "9:10 - 9:40 and 1:00-1:20", "9:10am to 9:40am".
-      const ranges = Array.from(fullText.matchAll(/(\d{1,2}):(\d{2})\s*(am|pm)?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2}):(\d{2})\s*(am|pm)?/gi));
-      if (ranges.length) {
-        const toMin = (h, m, ap) => { h = parseInt(h, 10) % 12; if (ap && /pm/i.test(ap)) h += 12; else if (!ap && h < SHIFT_START_HOUR) h += 12; return h * 60 + parseInt(m, 10); };
-        for (const t of ranges) {
-          let diff = toMin(t[4], t[5], t[6] || t[3]) - toMin(t[1], t[2], t[3]);
-          if (diff < 0) diff += 12 * 60;
-          if (diff < 12 * 60) downtimeMins += diff;
-        }
-        downtimeMessages.push(fullText);
-      } else if (fullText.length > 3) {
+      const fullText = (cellA + " " + (cellText(getCell(sheet, "B" + rowNum)) || "") + " " + (cellText(getCell(sheet, "C" + rowNum)) || "") + " " + (cellText(getCell(sheet, "Q" + rowNum)) || "")).replace(/\s+/g, " ").replace(/(\d):\s(\d\d)/g, "$1:$2").trim();
+      const ranges = paintDowntimeRanges(fullText);
+      for (const r of ranges) downtimeMins += r.mins;
+      // A color change often takes two rows: "COLOR CHANGE: BROWN-RED", then "3PM-3:15PM"
+      // under it. A row that is only times belongs to the message above it.
+      const timesOnly = ranges.length && !/[a-z]{3,}/i.test(ranges.reduce((t, r) => t.replace(r.text, " "), fullText).replace(/\b(?:am|pm)\b/gi, " "));
+      if (timesOnly && downtimeMessages.length) {
+        downtimeMessages[downtimeMessages.length - 1] += " " + fullText;
+      } else if (ranges.length || fullText.length > 3) {
         downtimeMessages.push(fullText);
       }
     }
@@ -495,7 +518,7 @@ function buildPaintFromSheet(sheet, weekAttainmentPct, selectedDateISO, warnings
   ];
   const notes = [];
   if (downtimeMessages.length > 0) {
-    stats.push({ label: "DOWNTIME", value: downtimeMins > 0 ? downtimeMins + " MINS" : "ACTIVE", tone: downtimeMins > 0 ? "yellow" : "default" });
+    stats.push({ label: "DOWNTIME", value: downtimeMins > 0 ? formatDowntimeMins(downtimeMins) : "ACTIVE", tone: downtimeMins > 0 ? "yellow" : "default" });
     notes.push({ type: "warning", label: "DOWNTIME LOG", content: downtimeMessages.join(" \xB7 "), customColor: "#D97706" });
   }
   const weekAttainment = weekAttainmentPct;

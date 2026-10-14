@@ -88,6 +88,21 @@ check(!/WORKING ON/.test(v.txt[3]), "tanks: downtime replaces WORKING ON");
 check(new Set(v.notesTop.filter((x) => x !== null)).size === 1, "notes start at the same height on every card: " + v.notesTop.join(","));
 check(/NO UPDATE 2H 10M/i.test(v.txt[0]) && !/NO UPDATE/i.test(v.txt.slice(1).join(" ")), "stale flag only after 2 hours");
 check(/sample data/i.test(v.loading) && /TRAILERS/.test(v.loading) && /\/ 16/.test(v.loading) && /88%/.test(v.loading) && /TOTAL SHORTS/.test(v.loading) && /61PCS|61 PCS/.test(v.loading.replace(/\s+/g, "")) && /TOP 6 SHORT PRODUCTS/.test(v.loading), "preview fills the loading strip with labelled sample data");
+// Fill-rate traffic light on the shorts panel; the product badges stay red.
+const fills = await tv.evaluate(() => {
+  const keep = state.result.loading;
+  const out = [0.99, 0.98, 0.9795, 0.979, 0.95, 0.949, 0.9, null].map((f) => {
+    state.result.loading = Object.assign({}, LOADING_SAMPLE, { fulfillment: f, sample: false });
+    renderLoadingBar();
+    const box = document.querySelector(".loading-shorts");
+    return { tone: box.className.replace("loading-shorts", "").trim(), bg: getComputedStyle(box).backgroundColor, badge: getComputedStyle(document.querySelector(".short-item b")).backgroundColor };
+  });
+  state.result.loading = keep; renderLoadingBar();
+  return out;
+});
+check(fills.map((f) => f.tone).join(" ") === "fill-green fill-green fill-green fill-amber fill-amber fill-red fill-red fill-red", "shorts panel: 98%+ green, 95-97.9% amber, under 95% red: " + fills.map((f) => f.tone).join(" "));
+check(fills[0].bg !== fills[3].bg && fills[3].bg !== fills[5].bg, "the three tones look different: " + fills.map((f) => f.bg).join(" "));
+check(fills.every((f) => f.badge === "rgb(180, 35, 24)"), "product badges stay red at every fill rate");
 check(!/ON PACE|HIGH RISK|AT RISK|RECOVERY|BUILDING/.test(v.kpis[1]) && /Active personnel/i.test(v.kpis[2]) && /Shift left/i.test(v.kpis[3]), "KPI tiles: compact, titled, no status badge on PROJECTED");
 check(v.kpiH <= 110, "KPI row is low (" + v.kpiH + " px)");
 check(v.scale >= 0.88, "worst case still fits at a large scale: " + v.scale);

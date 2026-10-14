@@ -113,7 +113,7 @@ html.v2 .loading-trailers { padding: 12px 20px; display: flex; flex-direction: c
 html.v2 .loading-title { font-size: 32px; font-weight: 900; color: #013449; letter-spacing: -.01em; }
 html.v2 .loading-title { line-height: 1; }
 html.v2 .loading-sub { font-size: 14px; font-weight: 800; letter-spacing: .1em; color: #5b6b80; text-transform: uppercase; }
-html.v2 .loading-shorts-total .sub { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: #7a271a; text-transform: uppercase; }
+html.v2 .loading-shorts-total .sub { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--fill-sub); text-transform: uppercase; }
 html.v2 .loading-count { display: flex; align-items: baseline; gap: 8px; }
 html.v2 .loading-count .lbl { font-size: 12px; font-weight: 900; letter-spacing: .1em; color: #5b6b80; }
 html.v2 .loading-count .num { font-size: 36px; font-weight: 900; color: #013449; line-height: 1; }
@@ -121,12 +121,17 @@ html.v2 .loading-count .goal { font-size: 17px; font-weight: 900; color: #16a34a
 html.v2 .loading-count .pct { margin-left: auto; font-size: 16px; font-weight: 900; color: #013449; }
 html.v2 .loading-track { height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
 html.v2 .loading-track > div { height: 100%; background: linear-gradient(90deg, #f59e0b, #16a34a); border-radius: 999px; }
-html.v2 .loading-shorts { flex: 1; padding: 12px 22px; display: flex; align-items: center; gap: 22px; background: #fef2f2; min-width: 0; }
+html.v2 .loading-shorts { flex: 1; padding: 12px 22px; display: flex; align-items: center; gap: 22px; background: var(--fill-bg); min-width: 0; }
+/* Fill-rate traffic light: 98%+ green, 95-97.9% amber, under 95% red (also when there is no %).
+   The product badges stay red either way: they are the pieces that went short. */
+html.v2 .loading-shorts { --fill-bg: #fef2f2; --fill-strong: #b42318; --fill-sub: #7a271a; }
+html.v2 .loading-shorts.fill-amber { --fill-bg: #fffbeb; --fill-strong: #b45309; --fill-sub: #78350f; }
+html.v2 .loading-shorts.fill-green { --fill-bg: #f0fdf4; --fill-strong: #15803d; --fill-sub: #14532d; }
 html.v2 .loading-shorts-total { flex-shrink: 0; text-align: center; }
-html.v2 .loading-shorts-total .lbl { font-size: 14px; font-weight: 900; letter-spacing: .12em; color: #b42318; }
-html.v2 .loading-shorts-total .num { font-size: 52px; font-weight: 900; color: #b42318; line-height: 1; }
+html.v2 .loading-shorts-total .lbl { font-size: 14px; font-weight: 900; letter-spacing: .12em; color: var(--fill-strong); }
+html.v2 .loading-shorts-total .num { font-size: 52px; font-weight: 900; color: var(--fill-strong); line-height: 1; }
 html.v2 .loading-shorts-top { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-html.v2 .loading-shorts-head { font-size: 12px; font-weight: 900; letter-spacing: .12em; color: #b42318; }
+html.v2 .loading-shorts-head { font-size: 12px; font-weight: 900; letter-spacing: .12em; color: var(--fill-strong); }
 html.v2 .loading-shorts-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; min-width: 0; }
 html.v2 .loading-shorts-total .num .unit { font-size: 20px; margin-left: 6px; letter-spacing: .06em; }
 html.v2 .short-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 12px; font-size: 19px; font-weight: 900; color: #7a271a; min-width: 0; }
