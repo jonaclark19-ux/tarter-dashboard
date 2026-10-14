@@ -67,13 +67,18 @@ function buildNewBlockFormat(sheet, selectedDateISO, warnings, opts) {
   let forecast = totals.forecast, actual = totals.actual;
   const materialShortageParts = totals.shortages;
   const notes = [];
-  if (opts.id === "fab") {
-    const issueLines = (totals.issues || []).map((issue) => issue.message + (issue.parts.length ? " — " + issue.parts.join(" · ") : ""));
-    const shortageOnly = materialShortageParts.filter((part) => !(totals.issues || []).some((issue) => issue.parts.indexOf(part) !== -1));
-    if (shortageOnly.length) issueLines.push("MATERIAL — " + shortageOnly.join(" · "));
-    if (issueLines.length) notes.push({ type: "warning", label: "DOWNTIME / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
-  } else if (opts.id === "welding" && materialShortageParts.length) {
-    notes.push({ type: "warning", label: "MATERIAL / ISSUES", content: materialShortageParts.join(" · "), customColor: "#D97706" });
+  if (opts.id === "fab" || opts.id === "welding") {
+    const issues = totals.issues || [];
+    const issueLines = issues.map((issue) => issue.message + (issue.parts.length ? " — " + issue.parts.join(" · ") : ""));
+    const shortageOnly = materialShortageParts.filter((part) => !issues.some((issue) => issue.parts.indexOf(part) !== -1));
+    if (opts.id === "fab") {
+      if (shortageOnly.length) issueLines.push("MATERIAL — " + shortageOnly.join(" · "));
+      if (issueLines.length) notes.push({ type: "warning", label: "DOWNTIME / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
+    } else {
+      // WELDING kept its label and its bare list of short parts; typed messages go first.
+      if (shortageOnly.length) issueLines.push(shortageOnly.join(" · "));
+      if (issueLines.length) notes.push({ type: "warning", label: "MATERIAL / ISSUES", content: issueLines.join(" | "), customColor: "#D97706" });
+    }
   }
   const expected = opts.expected;
   let attainmentPct;

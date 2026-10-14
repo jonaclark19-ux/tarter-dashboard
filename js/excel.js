@@ -188,7 +188,7 @@ function readBlockTotals(sheet, block, range, opts, warnings) {
   let forecast = null, actual = null, sawDaily = false;
   let computedForecast = 0, computedActual = 0, rows = 0;
   const shortages = [];
-  const fabIssueMap = new Map();
+  const issueMap = new Map();
   const firstDataRow = block.valueRow + 2;
   for (let rowNum = firstDataRow; rowNum <= range.e.r + 1; rowNum++) {
     const partName = cellText(getCell(sheet, colOffset(block.col, 0) + rowNum));
@@ -208,13 +208,17 @@ function readBlockTotals(sheet, block, range, opts, warnings) {
       const forecastN = cellNumber(forecastCell, null, "");
       const actualN = cellNumber(actualCell, null, "");
       const actualRaw = getRawText(actualCell).trim();
-      if (opts.id === "fab" && forecastN !== null && actualN === null && actualRaw && !cellIsError(actualCell)) {
+      // Text typed in ACTUAL instead of a number is a message for the floor ("Gas Issues").
+      // FAB only counts it on scheduled rows; WELDING writes it on any row, even one whose
+      // FORECAST holds the same text (a "Bulk Gas" line with "Gas Issues" in both).
+      const takesIssues = opts.id === "welding" || (opts.id === "fab" && forecastN !== null);
+      if (takesIssues && actualN === null && actualRaw && !cellIsError(actualCell)) {
         const normalizedIssue = actualRaw.replace(/\s+/g, " ").trim();
         if (!/^(?:-|—|n\/?a|na)$/i.test(normalizedIssue)) {
           const issueKey = normalizedIssue.toUpperCase();
-          const issue = fabIssueMap.get(issueKey) || { message: normalizedIssue, parts: [] };
+          const issue = issueMap.get(issueKey) || { message: normalizedIssue, parts: [] };
           if (issue.parts.indexOf(partLabel) === -1) issue.parts.push(partLabel);
-          fabIssueMap.set(issueKey, issue);
+          issueMap.set(issueKey, issue);
         }
       }
       // TOTAL / SUBTOTAL / SCRAP rows are not parts: adding them would double the day.
@@ -237,7 +241,7 @@ function readBlockTotals(sheet, block, range, opts, warnings) {
     forecast = computedForecast;
     actual = computedActual;
   }
-  return { forecast, actual, shortages, rows, issues: Array.from(fabIssueMap.values()) };
+  return { forecast, actual, shortages, rows, issues: Array.from(issueMap.values()) };
 }
 function blockForDate(blocks, dateISO) {
   return blocks.find((b) => b.iso === dateISO) || null;

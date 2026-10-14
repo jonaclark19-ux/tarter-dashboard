@@ -132,6 +132,11 @@ PROTECCIONES AUTOMÁTICAS
   suman dos veces. TANKS busca las filas SCHEDULED PROD. / TOTAL PROD. por su
   texto (agregar un producto ya no corre los números). PAINT busca la fila
   TOTAL por su texto; el downtime suma todos los rangos de cada fila.
+- Mensajes en la columna ACTUAL (FAB y WELDING): si en vez de un número se
+  escribe un texto (ej. fila "Bulk Gas" con "Gas Issues"), sale en la tarjeta
+  en el cuadro naranja: "Gas Issues — Bulk Gas". En WELDING vale en cualquier
+  fila; en FAB solo si la fila tiene FORECAST. "-" y "N/A" no cuentan. Para
+  quitarlo, borrar el texto del Excel.
 - Seguridad: los valores que llegan a las TVs se revisan antes de mostrarse
   (no se puede meter código). Falta la clave de publicación (pendiente).
 - Pruebas: npm test (7 pruebas automáticas, usan tests/fixture.json).
