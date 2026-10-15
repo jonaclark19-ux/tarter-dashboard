@@ -199,6 +199,16 @@ En el dashboard principal, botón SCREEN MESSAGES (en la barra de abajo):
   BROADCAST_PRESETS al principio del archivo.
 - Se guarda en Supabase en la misma tabla dashboard_snapshot, renglón id = 2
   (el renglón 1 son los números). Las TVs lo reciben en la misma consulta.
+  La tabla traía la regla "solo id = 1"; se cambió una vez a "id 1 o 2" en
+  Supabase -> SQL Editor con:
+    do $$ declare c text; begin
+      for c in select conname from pg_constraint
+               where conrelid = 'public.dashboard_snapshot'::regclass and contype = 'c'
+      loop execute format('alter table public.dashboard_snapshot drop constraint %I', c); end loop;
+    end $$;
+    alter table public.dashboard_snapshot
+      add constraint dashboard_snapshot_id_check check (id in (1, 2));
+  (Si mandar un mensaje da "Supabase write failed ... 23514", falta este paso.)
 
 REGLAS PARA QUE NO FALLE
 ------------------------
