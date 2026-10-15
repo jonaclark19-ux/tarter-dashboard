@@ -291,7 +291,8 @@ function render() {
   if (liveIndicator) {
     const txt = liveIndicator.querySelector("span");
     const dot = liveIndicator.querySelector("div");
-    if (txt) txt.textContent = feedDown ? "No connection" : sourceOffline ? "Source offline" : "System active";
+    // A quiet source PC is not shown here either (only in the warnings list).
+    if (txt) txt.textContent = feedDown ? "No connection" : "System active";
     if (dot) dot.style.background = tvAlert ? "#ef4444" : "";
   }
   const shown = failure.concat(warnings.slice(0, 3));
