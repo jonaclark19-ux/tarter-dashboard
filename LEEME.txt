@@ -182,8 +182,13 @@ MENSAJES A LAS PANTALLAS (POP-UPS)
 En el dashboard principal, botón SCREEN MESSAGES (en la barra de abajo):
 - Mensajes rápidos (PPE reminder, Forklift traffic, Quality alert, Great job...):
   al darles clic llenan el formulario; se puede editar antes de mandar.
-- Tipo (color y etiqueta en la pantalla): Safety (amarillo), Quality alert
-  (rojo), Notice (azul), Good news (verde).
+- Tipo = cómo se ve en la pantalla (un diseño por tipo):
+    Safety        letrero de precaución a pantalla completa (amarillo con
+                  franjas); si lleva foto, va en lugar del triángulo.
+    Quality alert tarjeta roja; la foto grande a la izquierda marcada NOT OK.
+    Notice        franja azul abajo; los números de arriba se siguen viendo.
+    Good news     tarjeta verde con palomita (o la foto) y confeti.
+  Títulos largos se achican solos para que quepan.
 - Foto opcional: se achica sola en el navegador (JPEG de máx. ~300 KB).
 - Duración: 15 s a 2 min. Después se cierra sola.
 - A quién: todas las pantallas, solo TVs, solo computadoras de oficina
@@ -304,5 +309,7 @@ tests/                pruebas automáticas (npm test; también corren en GitHub
                       en cada PR, .github/workflows/test.yml)
 lib/db.js             lectura/escritura en Supabase
 vendor/xlsx.js        lector de Excel (solo lo carga la PC fuente)
+vendor/barlow-condensed-800-latin.woff2  letra de los títulos de los pop-ups
+                      (Barlow Condensed, licencia libre SIL OFL)
 vercel.json           cabeceras (no-cache en la página, caché corto en la API,
                       caché de 1 año para vendor/xlsx.js, seguridad)

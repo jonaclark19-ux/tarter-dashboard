@@ -16,10 +16,10 @@ var BROADCAST_PRESETS = [
   { label: "Great job", kind: "good", title: "Great job, team!", text: "We hit today's goal. Thank you!" }
 ];
 var BROADCAST_KINDS = {
-  safety: { label: "Safety", band: "#f59e0b", ink: "#1b1f24", icon: "!" },
-  quality: { label: "Quality alert", band: "#dc2626", ink: "#ffffff", icon: "!" },
-  info: { label: "Notice", band: "#013449", ink: "#ffffff", icon: "i" },
-  good: { label: "Good news", band: "#15803d", ink: "#ffffff", icon: "✓" }
+  safety: { label: "Safety (full-screen caution sign)", color: "#eab308" },
+  quality: { label: "Quality alert (red card, photo)", color: "#dc2626" },
+  info: { label: "Notice (banner at the bottom)", color: "#013449" },
+  good: { label: "Good news (green card)", color: "#15803d" }
 };
 var BROADCAST_SECONDS = [15, 30, 45, 60, 90, 120];
 var BROADCAST_SEEN_LS = "tarter-broadcast-seen";
@@ -79,55 +79,188 @@ function bcEl(tag, cls, text) {
   return node;
 }
 
-/** The pop-up itself. On TVs it sits inside the scaled page, so sizes are in canvas px. */
-function showBroadcast(msg, image) {
-  closeBroadcast();
-  const kind = BROADCAST_KINDS[msg.kind] || BROADCAST_KINDS.info;
-  const seconds = Math.min(300, Math.max(5, Number(msg.seconds) || 30));
-  const overlay = bcEl("div", "bc-overlay" + (IS_TV_MODE ? "" : " bc-compact"));
-  overlay.setAttribute("role", "alertdialog");
-  overlay.setAttribute("aria-live", "assertive");
-  const card = bcEl("div", "bc-card");
-  card.style.borderColor = kind.band;
-  const band = bcEl("div", "bc-band");
-  band.style.background = kind.band;
-  band.style.color = kind.ink;
-  const icon = bcEl("span", "bc-icon", kind.icon);
-  icon.style.color = kind.band;
-  icon.style.background = kind.ink;
-  band.appendChild(icon);
-  band.appendChild(bcEl("span", "bc-kind", kind.label));
-  const sent = msg.sentAt ? new Date(msg.sentAt) : new Date();
-  band.appendChild(bcEl("span", "bc-time", Number.isFinite(sent.getTime()) ? plantTimeText(sent) : ""));
-  card.appendChild(band);
-
-  const body = bcEl("div", "bc-body" + (image ? " bc-has-image" : ""));
-  if (image) {
-    const img = bcEl("img", "bc-img");
-    img.alt = "";
-    img.src = image;
-    body.appendChild(img);
-  }
-  const words = bcEl("div", "bc-words");
-  if (msg.title) words.appendChild(bcEl("div", "bc-title", msg.title));
-  if (msg.text) words.appendChild(bcEl("div", "bc-text", msg.text));
-  body.appendChild(words);
-  card.appendChild(body);
-
+// Icons: fixed stroke drawings (never anything from a message).
+var BC_ICONS = {
+  caution: { box: "0 0 24 22", paths: ["M12 1.5 1 20.5h22L12 1.5z", "M12 8.5v5.5", "M12 17v.01"], width: 1.6 },
+  alert: { box: "0 0 24 24", paths: ["M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19z", "M12 7v6", "M12 16.5v.01"], width: 2.4 },
+  megaphone: { box: "0 0 24 24", paths: ["M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z", "M15.5 8.5a5 5 0 0 1 0 7", "M18.5 5.5a9 9 0 0 1 0 13"], width: 2 },
+  check: { box: "0 0 24 24", paths: ["M5 12.5 10 17.5 19.5 7"], width: 3 }
+};
+function bcIcon(name, color) {
+  const def = BC_ICONS[name];
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", def.box);
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", color);
+  svg.setAttribute("stroke-width", String(def.width));
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  def.paths.forEach((d) => {
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  });
+  return svg;
+}
+/** Big type for short titles, smaller as they get longer, so 90 characters still fit. */
+function bcTitle(text, base) {
+  const node = bcEl("div", "bc-title", text);
+  const k = Math.max(0.42, Math.min(1, Math.sqrt(20 / Math.max(text.length, 1))));
+  node.style.fontSize = Math.round(base * k) + "px";
+  return node;
+}
+function bcText(text, base) {
+  const node = bcEl("div", "bc-text", text);
+  if (text.length > 160) node.style.fontSize = Math.round(base * 0.8) + "px";
+  return node;
+}
+function bcImage(image) {
+  const img = bcEl("img", "bc-img");
+  img.alt = "";
+  img.src = image;
+  return img;
+}
+function bcBar(fills) {
   const bar = bcEl("div", "bc-bar");
   const fill = bcEl("div", "bc-bar-fill");
-  fill.style.background = kind.band;
   bar.appendChild(fill);
-  card.appendChild(bar);
-  overlay.appendChild(card);
+  fills.push(fill);
+  return bar;
+}
+function bcWords(msg, titleBase, textBase) {
+  const words = bcEl("div", "bc-words");
+  if (msg.title) words.appendChild(bcTitle(msg.title, titleBase));
+  if (msg.text) words.appendChild(bcText(msg.text, textBase));
+  return words;
+}
+
+// One look per type (designs: Screen Message Pop-ups canvas). Each returns the card.
+var BC_LAYOUTS = {
+  // Full-screen caution sign: striped border, warning triangle (or the photo), huge title.
+  safety(msg, image, time, fills) {
+    const card = bcEl("div", "bc-card");
+    const side = bcEl("div", "bc-side");
+    side.appendChild(image ? bcImage(image) : bcIcon("caution", "#1b1f24"));
+    side.appendChild(bcEl("div", "bc-kind bc-head", "SAFETY"));
+    card.appendChild(side);
+    const words = bcWords(msg, 170, 42);
+    const foot = bcEl("div", "bc-foot");
+    foot.appendChild(bcBar(fills));
+    foot.appendChild(bcEl("div", "", time));
+    words.appendChild(foot);
+    card.appendChild(words);
+    return card;
+  },
+  // Red card: the photo large on the left marked NOT OK, the words on the right.
+  quality(msg, image, time, fills) {
+    const card = bcEl("div", "bc-card");
+    const band = bcEl("div", "bc-band");
+    band.appendChild(bcIcon("alert", "#ffffff"));
+    band.appendChild(bcEl("div", "bc-kind bc-head", "QUALITY ALERT"));
+    band.appendChild(bcEl("div", "bc-time", time));
+    card.appendChild(band);
+    const body = bcEl("div", "bc-body" + (image ? " bc-has-image" : ""));
+    if (image) {
+      const photo = bcEl("div", "bc-photo");
+      photo.appendChild(bcImage(image));
+      photo.appendChild(bcEl("div", "bc-tag", "NOT OK"));
+      body.appendChild(photo);
+    }
+    body.appendChild(bcWords(msg, image ? 96 : 130, 36));
+    card.appendChild(body);
+    const foot = bcEl("div", "bc-foot");
+    foot.appendChild(bcBar(fills));
+    card.appendChild(foot);
+    return card;
+  },
+  // Banner along the bottom: the numbers stay visible above it.
+  info(msg, image, time, fills) {
+    const card = bcEl("div", "bc-card");
+    card.appendChild(bcBar(fills));
+    const row = bcEl("div", "bc-row");
+    const badge = bcEl("div", "bc-badge");
+    badge.appendChild(bcIcon("megaphone", "#013449"));
+    row.appendChild(badge);
+    const words = bcEl("div", "bc-words");
+    const meta = bcEl("div", "bc-meta");
+    meta.appendChild(bcEl("div", "bc-kind", "Notice"));
+    meta.appendChild(bcEl("div", "bc-time", time));
+    words.appendChild(meta);
+    if (msg.title) words.appendChild(bcTitle(msg.title, 96));
+    if (msg.text) words.appendChild(bcText(msg.text, 34));
+    row.appendChild(words);
+    if (image) row.appendChild(bcImage(image));
+    card.appendChild(row);
+    return card;
+  },
+  // Green card with a big check (or the photo) and a little confetti.
+  good(msg, image, time, fills) {
+    const card = bcEl("div", "bc-card");
+    [
+      { left: "60px", top: "56px", width: "26px", height: "54px", background: "#facc15", transform: "rotate(-24deg)" },
+      { left: "170px", top: "120px", width: "22px", height: "22px", background: "#ffffff", borderRadius: "99px" },
+      { left: "70px", bottom: "64px", width: "24px", height: "50px", background: "#d32026", transform: "rotate(32deg)" },
+      { right: "70px", top: "56px", width: "26px", height: "54px", background: "#c1b087", transform: "rotate(28deg)" },
+      { right: "180px", top: "124px", width: "20px", height: "20px", background: "#facc15", borderRadius: "99px" },
+      { right: "80px", bottom: "64px", width: "24px", height: "50px", background: "#ffffff", transform: "rotate(-36deg)" }
+    ].forEach((look) => {
+      const bit = bcEl("div", "bc-confetti");
+      Object.assign(bit.style, look);
+      card.appendChild(bit);
+    });
+    if (image) card.appendChild(bcImage(image));
+    else {
+      const check = bcEl("div", "bc-check");
+      check.appendChild(bcIcon("check", "#15803d"));
+      card.appendChild(check);
+    }
+    card.appendChild(bcEl("div", "bc-kind bc-head", "GOOD NEWS"));
+    if (msg.title) card.appendChild(bcTitle(msg.title, 150));
+    if (msg.text) card.appendChild(bcText(msg.text, 42));
+    card.appendChild(bcBar(fills));
+    return card;
+  }
+};
+
+/** Scale the 1600x900 stage to the screen (on TVs: to the already scaled page). */
+function fitBroadcastStage() {
+  const overlay = broadcastShown.el;
+  if (!overlay) return;
+  const stage = overlay.firstChild;
+  const k = Math.min(overlay.clientWidth / 1600, overlay.clientHeight / 900);
+  stage.style.transform = "scale(" + k + ")";
+}
+window.addEventListener("resize", fitBroadcastStage);
+
+/** The pop-up itself. */
+function showBroadcast(msg, image) {
+  closeBroadcast();
+  const kind = BC_LAYOUTS[msg.kind] ? msg.kind : "info";
+  const seconds = Math.min(300, Math.max(5, Number(msg.seconds) || 30));
+  const sent = msg.sentAt ? new Date(msg.sentAt) : new Date();
+  const time = Number.isFinite(sent.getTime()) ? plantTimeText(sent) : "";
+  const overlay = bcEl("div", "bc-overlay bc-" + kind);
+  overlay.setAttribute("role", "alertdialog");
+  overlay.setAttribute("aria-live", "assertive");
+  overlay.setAttribute("aria-label", BROADCAST_KINDS[kind].label.replace(/ \(.*/, "") + (msg.title ? ": " + msg.title : ""));
+  const stage = bcEl("div", "bc-stage");
+  stage.style.transformOrigin = kind === "info" ? "center bottom" : "center center";
+  const fills = [];
+  stage.appendChild(BC_LAYOUTS[kind](msg, image, time, fills));
+  overlay.appendChild(stage);
   // Office PCs and the preview can close it early; TVs have no mouse and just wait.
   overlay.addEventListener("click", closeBroadcast);
   document.body.appendChild(overlay);
   broadcastShown.el = overlay;
+  fitBroadcastStage();
   // The countdown bar is one CSS transition: nothing for a weak TV browser to redraw.
-  void fill.offsetWidth;
-  fill.style.transition = "width " + seconds + "s linear";
-  fill.style.width = "0%";
+  fills.forEach((fill) => {
+    void fill.offsetWidth;
+    fill.style.transition = "width " + seconds + "s linear";
+    fill.style.width = "0%";
+  });
   broadcastShown.timer = setTimeout(closeBroadcast, seconds * 1e3);
 }
 document.addEventListener("keydown", (e) => {
@@ -218,7 +351,7 @@ function buildBroadcastPanel() {
   BROADCAST_PRESETS.forEach((p) => {
     const b = bcEl("button", "bc-preset", p.label);
     b.type = "button";
-    b.style.borderLeftColor = (BROADCAST_KINDS[p.kind] || BROADCAST_KINDS.info).band;
+    b.style.borderLeftColor = (BROADCAST_KINDS[p.kind] || BROADCAST_KINDS.info).color;
     b.addEventListener("click", () => {
       kindSel.value = BROADCAST_KINDS[p.kind] ? p.kind : "info";
       q("title").value = p.title || "";
