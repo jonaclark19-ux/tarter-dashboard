@@ -9,7 +9,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.TEST_KEY || "sb_secret_test";
 
-export const db = { row: null, writes: 0, reads: 0, change_log: [], change_seen: [] };
+// rows[1] = the dashboard snapshot (also reachable as db.row), rows[2] = the screen message.
+export const db = {
+  rows: {}, writes: 0, reads: 0, change_log: [], change_seen: [],
+  get row() { return this.rows[1] || null; },
+  set row(v) { if (v) this.rows[1] = v; else delete this.rows[1]; }
+};
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts = {}) => {
   const u = String(url);
@@ -36,16 +41,19 @@ globalThis.fetch = async (url, opts = {}) => {
   if (key !== process.env.SUPABASE_SERVICE_ROLE_KEY) return new Response('{"message":"bad key"}', { status: 401 });
   if ((opts.method || "GET") === "POST") {
     const body = JSON.parse(opts.body);
-    db.row = { data: body.data, source_label: body.source_label, updated_at: body.updated_at };
+    db.rows[body.id || 1] = { id: body.id || 1, data: body.data, source_label: body.source_label, updated_at: body.updated_at };
     db.writes++;
     return new Response(null, { status: 201 });
   }
   db.reads++;
-  return new Response(JSON.stringify(db.row ? [db.row] : []), { status: 200, headers: { "content-type": "application/json" } });
+  const q = new URL(u).searchParams.get("id") || "eq.1";
+  const ids = /^in\.\(/.test(q) ? q.slice(4, -1).split(",").map(Number) : [Number(q.replace(/^eq\./, ""))];
+  const rows = ids.map((i) => db.rows[i]).filter(Boolean).map((r) => Object.assign({ id: ids.find((i) => db.rows[i] === r) }, r));
+  return new Response(JSON.stringify(rows), { status: 200, headers: { "content-type": "application/json" } });
 };
 
 const handlers = {};
-for (const name of ["publish", "feed-snapshot", "seen", "timing", "keepalive"]) {
+for (const name of ["publish", "feed-snapshot", "seen", "timing", "keepalive", "broadcast"]) {
   handlers[name] = (await import(pathToFileURL(path.join(root, "api", name + ".js")).href)).default;
 }
 

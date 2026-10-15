@@ -345,6 +345,8 @@ async function pullFromUrl(force) {
   const snapshot = payload.result && payload.result.departments ? payload.result : payload.departments ? payload : null;
   if (snapshot) {
     noteSourceHeartbeat(payload);
+    // A screen message sent from the main dashboard rides along with the numbers.
+    handleBroadcast(payload);
     if (!plantTzFromUrl && typeof payload.timeZone === "string") setPlantTimeZone(payload.timeZone);
     // updatedAt only moves when the numbers change (heartbeats leave it alone), so an
     // unchanged feed doesn't re-render the TV every minute.

@@ -11,3 +11,4 @@ render();
 bootstrapAutoSync(TV_SNAPSHOT);
 var tvRequested = queryParam("tv");
 if (TV_SNAPSHOT || tvRequested === "1" || tvRequested === "true") enterTvMode(TV_SNAPSHOT);
+initBroadcastSender();

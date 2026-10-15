@@ -177,6 +177,29 @@ PROTECCIONES AUTOMÁTICAS
 - Vercel consulta Supabase una vez al día (api/keepalive) para que el plan
   gratis no se pause por inactividad.
 
+MENSAJES A LAS PANTALLAS (POP-UPS)
+----------------------------------
+En el dashboard principal, botón SCREEN MESSAGES (en la barra de abajo):
+- Mensajes rápidos (PPE reminder, Forklift traffic, Quality alert, Great job...):
+  al darles clic llenan el formulario; se puede editar antes de mandar.
+- Tipo (color y etiqueta en la pantalla): Safety (amarillo), Quality alert
+  (rojo), Notice (azul), Good news (verde).
+- Foto opcional: se achica sola en el navegador (JPEG de máx. ~300 KB).
+- Duración: 15 s a 2 min. Después se cierra sola.
+- A quién: todas las pantallas, solo TVs, solo computadoras de oficina
+  (/computer) o una pantalla por nombre (el de su link, ej. /tv/Soldadura).
+- PREVIEW HERE la muestra en tu pantalla sin mandarla. STOP MESSAGE ON
+  SCREENS la quita de todas.
+- Llega a las pantallas en 15 s o menos durante el turno; de noche y en fin
+  de semana las TVs revisan cada 5 min, así que puede tardar hasta 5 min.
+- Cada pantalla la muestra una sola vez (aunque se recargue la página).
+- Si en Vercel hay PUBLISH_KEY, mandar mensajes pide la misma clave (la
+  primera vez aparece una casilla para escribirla; el navegador la recuerda).
+- Para cambiar o agregar mensajes rápidos: js/broadcast.js, lista
+  BROADCAST_PRESETS al principio del archivo.
+- Se guarda en Supabase en la misma tabla dashboard_snapshot, renglón id = 2
+  (el renglón 1 son los números). Las TVs lo reciben en la misma consulta.
+
 REGLAS PARA QUE NO FALLE
 ------------------------
 1. La PC fuente debe quedar prendida, sin suspenderse, con la pestaña del
@@ -257,9 +280,12 @@ js/                   el código del dashboard, en partes (se cargan en este ord
   parser.js           arma los datos de la planta (Board Info, LOADING)
   main.js             estado de la página, reloj, modo TV y escala
   sync.js             lectura automática de la carpeta, envío y TVs
+  broadcast.js        mensajes a pantallas: panel para mandarlos y el pop-up
   start.js            arranca la página (siempre al final)
 api/publish.js        recibe los datos de la PC fuente
-api/feed-snapshot.js  entrega los datos a las TVs
+api/feed-snapshot.js  entrega los datos a las TVs (y el mensaje en pantalla, si hay)
+api/broadcast.js      recibe los mensajes a pantallas y entrega su foto
+lib/broadcast.js      reglas de los mensajes (tipos, tamaños, a quién)
 api/seen.js           cada TV avisa cuándo mostró un cambio (tiempos)
 api/timing.js         calcula los tiempos para timing.html
 api/keepalive.js      consulta diaria (Vercel Cron) para que Supabase no se pause

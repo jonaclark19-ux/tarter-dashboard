@@ -1,14 +1,18 @@
-import { getSnapshot } from "../lib/db.js";
+import { getFeedRows } from "../lib/db.js";
+import { feedSummary } from "../lib/broadcast.js";
 
 // Shape matches what dashboard.html's pullFromUrl() already understands as an
 // "already-parsed snapshot" feed (departments at the top level), plus:
 //   updatedAt   - when the numbers last changed (the TVs' change signature)
 //   heartbeatAt - when the source PC last checked in (stale-source detection)
 //   serverTime  - so a TV with a wrong clock still measures heartbeat age correctly
+//   broadcast   - the screen message being shown right now, if any (no photo)
 export default async function handler(req, res) {
-  let row;
+  let row, message;
   try {
-    row = await getSnapshot();
+    const rows = await getFeedRows();
+    row = rows.snapshot;
+    message = rows.broadcast;
   } catch (err) {
     res.setHeader("Cache-Control", "no-store");
     res.status(503).json({ error: err.code || "read_failed", message: err.message });
@@ -33,6 +37,8 @@ export default async function handler(req, res) {
     serverTime: new Date().toISOString(),
     fileName: row.source_label || "published snapshot"
   });
+  const broadcast = feedSummary(message, Date.now());
+  if (broadcast) payload.broadcast = broadcast;
 
   // Cached 5 s at Vercel's edge: TVs poll every 15 s in shift hours, so this keeps the function (and
   // Supabase) at about one call per 5 s however many TVs there are - well inside the

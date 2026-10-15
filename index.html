@@ -138,6 +138,61 @@ html.v2 .short-item { display: flex; justify-content: space-between; align-items
 html.v2 .short-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.v2 .short-none { grid-column: 1 / -1; font-size: 18px; font-weight: 900; color: #15803d; letter-spacing: .06em; text-transform: uppercase; }
 html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; padding: 1px 8px; font-size: 15px; flex-shrink: 0; }
+/* ===== Screen messages (js/broadcast.js) ===== */
+/* Pop-up on the screens. On TVs it lives inside the scaled page (1800 px canvas). */
+.bc-overlay { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 40px; background: rgba(15, 23, 42, .78); }
+.bc-card { width: 1500px; max-width: 100%; max-height: 100%; display: flex; flex-direction: column; background: #fff; border: 6px solid #013449; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.bc-band { display: flex; align-items: center; gap: 20px; padding: 18px 32px; font-size: 34px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.bc-icon { width: 54px; height: 54px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; letter-spacing: 0; flex-shrink: 0; }
+.bc-time { margin-left: auto; font-size: 26px; letter-spacing: .06em; opacity: .85; }
+.bc-body { display: flex; align-items: center; gap: 40px; padding: 40px 48px; min-height: 0; }
+.bc-img { max-width: 48%; max-height: 560px; object-fit: contain; border-radius: 12px; border: 1px solid #e2e8f0; flex-shrink: 0; }
+.bc-words { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.bc-body:not(.bc-has-image) .bc-words { text-align: center; }
+.bc-title { font-size: 80px; font-weight: 900; line-height: 1.05; color: #0f172a; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.bc-text { font-size: 42px; font-weight: 700; line-height: 1.25; color: #334155; overflow-wrap: anywhere; }
+.bc-bar { height: 16px; background: #e2e8f0; }
+.bc-bar-fill { height: 100%; width: 100%; }
+.bc-compact { padding: 16px; }
+.bc-compact .bc-card { width: 900px; border-width: 4px; border-radius: 16px; }
+.bc-compact .bc-band { font-size: 18px; padding: 12px 20px; gap: 12px; }
+.bc-compact .bc-icon { width: 32px; height: 32px; font-size: 22px; }
+.bc-compact .bc-time { font-size: 15px; }
+.bc-compact .bc-body { padding: 24px 28px; gap: 24px; }
+.bc-compact .bc-img { max-height: 50vh; }
+.bc-compact .bc-words { gap: 12px; }
+.bc-compact .bc-title { font-size: 40px; }
+.bc-compact .bc-text { font-size: 21px; }
+.bc-compact .bc-bar { height: 10px; }
+/* Sending panel (main dashboard only). */
+.bc-panel-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 32px 16px; background: rgba(15, 23, 42, .55); }
+.bc-panel-backdrop[hidden], .bc-panel [hidden] { display: none !important; }
+.bc-panel { width: 760px; max-width: 100%; background: #fff; border-radius: 14px; border-top: 6px solid #d32026; box-shadow: 0 20px 60px rgba(0,0,0,.35); padding: 22px 24px; color: #0f172a; }
+.bc-panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.bc-panel-title { font-size: 20px; font-weight: 900; color: #013449; }
+.bc-panel-sub { font-size: 13px; color: #465569; margin-top: 2px; }
+.bc-x { border: 0; background: #f1f5f9; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+.bc-section { margin-top: 18px; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #5b6b80; }
+.bc-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.bc-preset { border: 1px solid #cbd5e1; border-left: 6px solid #013449; background: #f8fafc; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 800; color: #0f172a; cursor: pointer; }
+.bc-preset:hover { background: #eef2f7; }
+.bc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 18px; }
+.bc-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bc-field > span { font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #5b6b80; }
+.bc-field input, .bc-field select, .bc-field textarea { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 15px; font-family: inherit; color: #0f172a; background: #fff; min-width: 0; }
+.bc-field input[type=file] { border: 0; padding: 4px 0; font-size: 13px; }
+.bc-wide { grid-column: 1 / -1; }
+.bc-photo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bc-thumb { height: 64px; max-width: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; }
+.bc-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.bc-btn { border-radius: 8px; padding: 10px 16px; font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; }
+.bc-btn:disabled { opacity: .5; cursor: wait; }
+.bc-btn-send { background: #d32026; border-color: #d32026; color: #fff; }
+.bc-btn-stop { color: #b42318; border-color: #fecaca; }
+.bc-status { margin-top: 12px; font-size: 13px; font-weight: 700; color: #465569; min-height: 18px; }
+.bc-status.bc-ok { color: #15803d; }
+.bc-status.bc-error { color: #b42318; }
+@media (max-width: 640px) { .bc-grid { grid-template-columns: 1fr; } .bc-actions { justify-content: stretch; } .bc-actions .bc-btn { flex: 1 1 100%; } }
 </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans selection:bg-tarter-red selection:text-white">
@@ -234,6 +289,10 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
         Connect Folder
       </button>
 
+      <button type="button" id="broadcast-open-btn" class="px-4 py-2 bg-tarter-navy border border-tarter-navy hover:opacity-90 text-white rounded-md text-[11px] font-bold tracking-widest uppercase transition-colors shadow-sm w-full sm:w-auto">
+        Screen Messages
+      </button>
+
       <button type="button" id="sync-now-btn" class="px-4 py-2 bg-white border border-slate-300 hover:border-tarter-navy hover:text-tarter-navy text-slate-700 rounded-md text-[11px] font-bold tracking-widest uppercase transition-colors shadow-sm w-full sm:w-auto">
         Sync Now
       </button>
@@ -274,6 +333,7 @@ html.v2 .short-item b { background: #b42318; color: #fff; border-radius: 6px; pa
 <script src="js/parser.js"></script>
 <script src="js/main.js"></script>
 <script src="js/sync.js"></script>
+<script src="js/broadcast.js"></script>
 <script src="js/start.js"></script>
 </body>
 </html>
